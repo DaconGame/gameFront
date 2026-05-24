@@ -295,6 +295,17 @@ canvas {
   animation: merc-bob 1.8s ease-in-out infinite;
 }
 
+/* ─── Mercenary sprite-sheet (Tiny RPG Pack — static idle frame) ────────── */
+
+.merc-sprite {
+  background-image: var(--merc-sprite);
+  background-repeat: no-repeat;
+  background-size: 600% 100%;
+  background-position: 0% 50%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
 /* ─── Pixel button ──────────────────────────────────────────────────────── */
 
 .pixel-btn {

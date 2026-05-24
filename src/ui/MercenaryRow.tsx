@@ -1,76 +1,24 @@
+import type { CSSProperties } from "react";
+
 type Mercenary = {
   id: string;
   label: string;
   role: string;
   stats: Array<{ k: string; v: string }>;
   glow: string;
-  delay: string;
-  Body: () => React.ReactElement;
+  bobDelay: string;
+  spriteUrl: string;
 };
 
 /**
- * 픽셀 실루엣 4종 — 모두 16×24 viewBox.
- * 공통 몸통(머리·토르소·다리) 위에 클래스별 액세서리(검·활·지팡이·후광) 추가.
- * 모두 currentColor 사용 → CSS color로 한 번에 톤 조정.
- *
- * 수치는 기획서 6-2 표 기준.
+ * Tiny RPG Character Asset Pack v1.03 — 6-frame idle 시트 (600×100).
+ * `public/`에 있는 자산을 그대로 참조하며, CSS `steps(6)`로 시트 애니메이션을 재생한다.
  */
+const ASSET_BASE =
+  "/assets/Tiny RPG Character Asset Pack v1.03 -Full 20 Characters/Characters(100x100)";
 
-const Body = () => (
-  <>
-    <rect x="7" y="3" width="2" height="3" fill="currentColor" />
-    <rect x="6" y="7" width="4" height="8" fill="currentColor" />
-    <rect x="5" y="15" width="2" height="3" fill="currentColor" />
-    <rect x="9" y="15" width="2" height="3" fill="currentColor" />
-    <rect x="5" y="18" width="2" height="4" fill="currentColor" />
-    <rect x="9" y="18" width="2" height="4" fill="currentColor" />
-  </>
-);
-
-const SwordsmanBody = () => (
-  <>
-    <Body />
-    <rect x="11" y="6" width="1" height="11" fill="currentColor" />
-    <rect x="10" y="6" width="3" height="1" fill="currentColor" />
-    <rect x="11" y="16" width="1" height="2" fill="currentColor" />
-  </>
-);
-
-const ArcherBody = () => (
-  <>
-    <Body />
-    <rect x="12" y="6" width="1" height="10" fill="currentColor" />
-    <rect x="13" y="7" width="1" height="2" fill="currentColor" />
-    <rect x="13" y="13" width="1" height="2" fill="currentColor" />
-  </>
-);
-
-const MageBody = () => (
-  <>
-    <rect x="6" y="2" width="4" height="1" fill="currentColor" />
-    <rect x="7" y="1" width="2" height="1" fill="currentColor" />
-    <rect x="7" y="3" width="2" height="3" fill="currentColor" />
-    <rect x="6" y="7" width="4" height="8" fill="currentColor" />
-    <rect x="5" y="15" width="2" height="3" fill="currentColor" />
-    <rect x="9" y="15" width="2" height="3" fill="currentColor" />
-    <rect x="5" y="18" width="2" height="4" fill="currentColor" />
-    <rect x="9" y="18" width="2" height="4" fill="currentColor" />
-    <rect x="12" y="6" width="1" height="12" fill="currentColor" />
-    <rect x="11" y="5" width="3" height="2" fill="currentColor" />
-  </>
-);
-
-const ClericBody = () => (
-  <>
-    <rect x="6" y="1" width="4" height="1" fill="currentColor" />
-    <rect x="6" y="3" width="1" height="1" fill="currentColor" />
-    <rect x="9" y="3" width="1" height="1" fill="currentColor" />
-    <Body />
-    <rect x="7" y="9" width="2" height="1" fill="#050309" />
-    <rect x="6" y="10" width="4" height="1" fill="#050309" />
-    <rect x="7" y="11" width="2" height="1" fill="#050309" />
-  </>
-);
+const idleSprite = (folder: string, file: string) =>
+  encodeURI(`${ASSET_BASE}/${folder}/${folder}/${file}-Idle.png`);
 
 const MERCS: Mercenary[] = [
   {
@@ -83,8 +31,8 @@ const MERCS: Mercenary[] = [
       { k: "쿨타임", v: "0.8s" },
     ],
     glow: "var(--color-class-sword)",
-    delay: "0s",
-    Body: SwordsmanBody,
+    bobDelay: "0s",
+    spriteUrl: idleSprite("Swordsman", "Swordsman"),
   },
   {
     id: "bow",
@@ -96,8 +44,8 @@ const MERCS: Mercenary[] = [
       { k: "쿨타임", v: "1.0s" },
     ],
     glow: "var(--color-class-bow)",
-    delay: "0.25s",
-    Body: ArcherBody,
+    bobDelay: "0.25s",
+    spriteUrl: idleSprite("Archer", "Archer"),
   },
   {
     id: "mage",
@@ -109,8 +57,8 @@ const MERCS: Mercenary[] = [
       { k: "쿨타임", v: "2.0s" },
     ],
     glow: "var(--color-class-mage)",
-    delay: "0.5s",
-    Body: MageBody,
+    bobDelay: "0.5s",
+    spriteUrl: idleSprite("Wizard", "Wizard"),
   },
   {
     id: "cleric",
@@ -122,8 +70,8 @@ const MERCS: Mercenary[] = [
       { k: "주기", v: "5.0s" },
     ],
     glow: "var(--color-class-cleric)",
-    delay: "0.75s",
-    Body: ClericBody,
+    bobDelay: "0.75s",
+    spriteUrl: idleSprite("Priest", "Priest"),
   },
 ];
 
@@ -134,7 +82,7 @@ export function MercenaryRow() {
         <div
           key={m.id}
           className="merc-tooltip-host relative flex flex-col items-center gap-2 merc-bob cursor-help"
-          style={{ animationDelay: m.delay }}
+          style={{ animationDelay: m.bobDelay }}
           tabIndex={0}
           aria-label={`${m.label} — ${m.role}`}
         >
@@ -153,27 +101,24 @@ export function MercenaryRow() {
             </div>
           </div>
 
-          <div className="relative w-12 h-16 md:w-14 md:h-20 flex items-center justify-center">
+          <div className="relative w-32 h-32 md:w-40 md:h-40 flex items-center justify-center">
             <div
               className="absolute inset-0 rounded-full"
               style={{
-                background: `radial-gradient(circle at 50% 70%, ${m.glow}55 0%, transparent 65%)`,
-                filter: "blur(6px)",
+                background: `radial-gradient(circle at 50% 72%, ${m.glow}66 0%, transparent 60%)`,
+                filter: "blur(10px)",
               }}
             />
-            <svg
-              viewBox="0 0 16 24"
-              width="100%"
-              height="100%"
-              className="relative"
-              style={{
-                color: m.glow,
-                filter: `drop-shadow(0 0 6px ${m.glow}aa)`,
-              }}
+            <div
+              className="merc-sprite relative w-full h-full"
+              style={
+                {
+                  "--merc-sprite": `url("${m.spriteUrl}")`,
+                  filter: `drop-shadow(0 0 6px ${m.glow}aa)`,
+                } as CSSProperties
+              }
               aria-hidden="true"
-            >
-              <m.Body />
-            </svg>
+            />
           </div>
           <span
             className="text-[10px] md:text-xs font-pixel-ko text-bone-white/70 tracking-wide"
