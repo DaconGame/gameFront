@@ -1,5 +1,7 @@
 import Phaser from "phaser";
 import {
+  CLASS_DEFS,
+  CLASS_FRAME,
   FLOOR_PATCH_TILES,
   GAME_HEIGHT,
   GAME_WIDTH,
@@ -8,6 +10,7 @@ import {
   TEX,
   TILE,
   TILE_SIZE,
+  classSheetPath,
 } from "../config";
 import {
   ensureFloorPatch,
@@ -35,6 +38,14 @@ export class PreloadScene extends Phaser.Scene {
     this.load.spritesheet(TEX.heroIdleUp, PACK_PATH.heroIdleUp, heroFrame);
     this.load.spritesheet(TEX.heroIdleSide, PACK_PATH.heroIdleSide, heroFrame);
     this.load.image(TEX.heroShadow, PACK_PATH.heroShadow);
+
+    const classId = this.registry.get("classId") as string | null;
+    const classDef = classId ? CLASS_DEFS[classId] : undefined;
+    if (classDef) {
+      const classFrame = { frameWidth: CLASS_FRAME.width, frameHeight: CLASS_FRAME.height };
+      this.load.spritesheet(TEX.classIdle, classSheetPath(classDef.folder, "Idle"), classFrame);
+      this.load.spritesheet(TEX.classWalk, classSheetPath(classDef.folder, "Walk"), classFrame);
+    }
 
     this.load.on("loaderror", (file: Phaser.Loader.File) => {
       console.warn(`[asset] missing, using fallback if any: ${file.key}`);

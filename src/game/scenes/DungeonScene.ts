@@ -1,5 +1,9 @@
 import Phaser from "phaser";
 import {
+  CLASS_ANIM,
+  CLASS_DEFS,
+  CLASS_FRAME,
+  CLASS_SCALE,
   GAME_HEIGHT,
   GAME_WIDTH,
   HERO_ANIM,
@@ -36,6 +40,8 @@ export class DungeonScene extends Phaser.Scene {
   private keys?: WasdKeys;
   private coordText?: Phaser.GameObjects.Text;
   private facing: Facing = "down";
+  private usingClass = false;
+  private footOffset = HERO_FRAME.height * TILE_SCALE * 0.42;
 
   constructor() {
     super({ key: "DungeonScene" });
@@ -76,15 +82,23 @@ export class DungeonScene extends Phaser.Scene {
     if (this.keys.down.isDown || this.keys.s.isDown) dy += 1;
 
     const body = this.player.body as Phaser.Physics.Arcade.Body;
-    if (dx !== 0 || dy !== 0) {
+    const moving = dx !== 0 || dy !== 0;
+    if (moving) {
       const len = Math.hypot(dx, dy);
       body.setVelocity((dx / len) * PLAYER_SPEED, (dy / len) * PLAYER_SPEED);
-      this.updateFacing(dx, dy);
+      if (this.usingClass) {
+        if (dx < 0) this.player.setFlipX(true);
+        else if (dx > 0) this.player.setFlipX(false);
+        this.player.play(CLASS_ANIM.walk, true);
+      } else {
+        this.updateFacing(dx, dy);
+      }
     } else {
       body.setVelocity(0, 0);
+      if (this.usingClass) this.player.play(CLASS_ANIM.idle, true);
     }
 
-    this.shadow.setPosition(this.player.x, this.player.y + HERO_FRAME.height * TILE_SCALE * 0.42);
+    this.shadow.setPosition(this.player.x, this.player.y + this.footOffset);
 
     this.floor.tilePositionX = this.cameras.main.scrollX;
     this.floor.tilePositionY = this.cameras.main.scrollY;
@@ -141,9 +155,41 @@ export class DungeonScene extends Phaser.Scene {
     idleAnim(HERO_ANIM.idleDown, TEX.heroIdleDown);
     idleAnim(HERO_ANIM.idleUp, TEX.heroIdleUp);
     idleAnim(HERO_ANIM.idleSide, TEX.heroIdleSide);
+
+    const classId = this.registry.get("classId") as string | null;
+    const classDef = classId ? CLASS_DEFS[classId] : undefined;
+    if (classDef && this.textures.exists(TEX.classIdle) && !this.anims.exists(CLASS_ANIM.idle)) {
+      this.anims.create({
+        key: CLASS_ANIM.idle,
+        frames: this.anims.generateFrameNumbers(TEX.classIdle, {
+          start: 0,
+          end: classDef.idleFrames - 1,
+        }),
+        frameRate: 8,
+        repeat: -1,
+      });
+    }
+    if (classDef && this.textures.exists(TEX.classWalk) && !this.anims.exists(CLASS_ANIM.walk)) {
+      this.anims.create({
+        key: CLASS_ANIM.walk,
+        frames: this.anims.generateFrameNumbers(TEX.classWalk, {
+          start: 0,
+          end: classDef.walkFrames - 1,
+        }),
+        frameRate: 12,
+        repeat: -1,
+      });
+    }
   }
 
   private spawnPlayer(): void {
+    this.usingClass = this.anims.exists(CLASS_ANIM.idle) && this.textures.exists(TEX.classIdle);
+
+    if (this.usingClass) {
+      this.spawnClassPlayer();
+      return;
+    }
+
     this.shadow = this.add
       .image(0, 0, TEX.heroShadow)
       .setOrigin(0.5, 0.5)
@@ -163,6 +209,32 @@ export class DungeonScene extends Phaser.Scene {
     body.setCollideWorldBounds(false);
   }
 
+  private spawnClassPlayer(): void {
+    const feetY = 58;
+    const feetRatio = feetY / CLASS_FRAME.height;
+    this.footOffset = 4;
+
+    this.shadow = this.add
+      .image(0, 0, TEX.heroShadow)
+      .setOrigin(0.5, 0.875)
+      .setScale(TILE_SCALE * 1.5)
+      .setAlpha(0.5)
+      .setDepth(19);
+
+    this.player = this.physics.add.sprite(0, 0, TEX.classIdle, 0);
+    this.player.setScale(CLASS_SCALE);
+    this.player.setDepth(20);
+    this.player.setOrigin(0.5, feetRatio);
+    this.player.play(CLASS_ANIM.idle);
+
+    const bodyW = 22;
+    const bodyH = 20;
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    body.setSize(bodyW, bodyH);
+    body.setOffset((CLASS_FRAME.width - bodyW) / 2, feetY - bodyH);
+    body.setCollideWorldBounds(false);
+  }
+
   private updateFacing(dx: number, dy: number): void {
     let next: Facing;
     if (Math.abs(dx) >= Math.abs(dy)) {
@@ -179,7 +251,6 @@ export class DungeonScene extends Phaser.Scene {
     this.player.play(animKey, true);
   }
 
-  /** Atmospheric torches placed in world space around origin. They scroll with the camera. */
   private spawnAmbientTorches(): void {
     const ringRadius = 360;
     const positions = [

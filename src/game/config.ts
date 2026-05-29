@@ -44,6 +44,8 @@ export const TEX = {
   heroIdleUp: "tex-hero-idle-up",
   heroIdleSide: "tex-hero-idle-side",
   heroShadow: "tex-hero-shadow",
+  classIdle: "tex-class-idle",
+  classWalk: "tex-class-walk",
   procFloor: "tex-proc-floor",
   procFloorAlt: "tex-proc-floor-alt",
   procWallTop: "tex-proc-wall-top",
@@ -71,6 +73,34 @@ export const HERO_ANIM = {
   idleUp: "hero-idle-up",
   idleSide: "hero-idle-side",
 } as const;
+
+export const CLASS_ANIM = {
+  idle: "class-idle",
+  walk: "class-walk",
+} as const;
+
+export const CLASS_FRAME = { width: 100, height: 100 } as const;
+/**
+ * 100x100 프레임 안에서 실제 캐릭터는 ~20px 높이로 가운데 작게 들어있다.
+ * 기존 영웅과 비슷한 화면 크기(약 60px)가 되도록 크게 확대한다.
+ */
+export const CLASS_SCALE = 3;
+
+export const CLASS_ASSET_BASE =
+  "assets/Tiny RPG Character Asset Pack v1.03 -Full 20 Characters/Characters(100x100)";
+
+export type ClassDef = { folder: string; idleFrames: number; walkFrames: number };
+
+export const CLASS_DEFS: Record<string, ClassDef> = {
+  sword: { folder: "Swordsman", idleFrames: 6, walkFrames: 8 },
+  bow: { folder: "Archer", idleFrames: 6, walkFrames: 8 },
+  mage: { folder: "Wizard", idleFrames: 6, walkFrames: 8 },
+  cleric: { folder: "Priest", idleFrames: 6, walkFrames: 8 },
+};
+
+export function classSheetPath(folder: string, anim: "Idle" | "Walk"): string {
+  return encodeURI(`${CLASS_ASSET_BASE}/${folder}/${folder}/${folder}-${anim}.png`);
+}
 
 export const TILE = {
   cornerTL: 0,

@@ -4,7 +4,9 @@ import { PreloadScene } from "./scenes/PreloadScene";
 import { DungeonScene } from "./scenes/DungeonScene";
 import { GAME_WIDTH, GAME_HEIGHT, HEX } from "./config";
 
-export function PhaserGame() {
+type Props = { classId?: string | null };
+
+export function PhaserGame({ classId }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
 
@@ -12,7 +14,7 @@ export function PhaserGame() {
     if (!containerRef.current) return;
     if (gameRef.current) return;
 
-    gameRef.current = new Phaser.Game({
+    const game = new Phaser.Game({
       type: Phaser.AUTO,
       parent: containerRef.current,
       width: GAME_WIDTH,
@@ -32,12 +34,14 @@ export function PhaserGame() {
       },
       scene: [PreloadScene, DungeonScene],
     });
+    game.registry.set("classId", classId ?? null);
+    gameRef.current = game;
 
     return () => {
       gameRef.current?.destroy(true);
       gameRef.current = null;
     };
-  }, []);
+  }, [classId]);
 
   return (
     <div className="fixed inset-0 bg-dungeon-deepest flex items-center justify-center">

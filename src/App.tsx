@@ -59,7 +59,7 @@ function GamePage() {
     );
   }
 
-  return <PhaserGame />;
+  return <PhaserGame classId={selectedClass} />;
 }
 
 function App() {
