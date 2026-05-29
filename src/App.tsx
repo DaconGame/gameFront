@@ -1,28 +1,43 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { TitleScreen } from "./ui/TitleScreen.tsx";
 import { PhaserGame } from "./game/PhaserGame.tsx";
 
-type Screen = "title" | "game";
+function TitlePage() {
+  const navigate = useNavigate();
+  return <TitleScreen onStart={() => navigate("/game")} />;
+}
+
+function GamePage() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const exitToTitle = () => navigate("/");
+
+    const onExit = () => exitToTitle();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") exitToTitle();
+    };
+
+    window.addEventListener("game:exit", onExit);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("game:exit", onExit);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [navigate]);
+
+  return <PhaserGame />;
+}
 
 function App() {
-  const [screen, setScreen] = useState<Screen>("title");
-
-  useEffect(() => {
-    const onExit = () => setScreen("title");
-    window.addEventListener("game:exit", onExit);
-    return () => window.removeEventListener("game:exit", onExit);
-  }, []);
-
-  useEffect(() => {
-    if (screen !== "game") return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setScreen("title");
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [screen]);
-
-  return screen === "title" ? <TitleScreen onStart={() => setScreen("game")} /> : <PhaserGame />;
+  return (
+    <Routes>
+      <Route path="/" element={<TitlePage />} />
+      <Route path="/game" element={<GamePage />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 }
 
 export default App;
