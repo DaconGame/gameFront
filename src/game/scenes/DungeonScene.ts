@@ -18,7 +18,8 @@ import {
 } from "../config";
 import { GameHud } from "../hud/GameHud";
 import { PauseMenu } from "../hud/PauseMenu";
-import { GameState } from "../state/GameState";
+import { GameOverMenu } from "../hud/GameOverMenu";
+import { GAME_EVENT, GameState, type GameOverPayload } from "../state/GameState";
 import { Enemy, ensureEnemyAnimations } from "../entities/Enemy";
 import { ensureMercAnimations } from "../entities/Mercenary";
 import { WaveManager } from "../systems/WaveManager";
@@ -49,7 +50,9 @@ export class DungeonScene extends Phaser.Scene {
   private keys?: WasdKeys;
   private hud?: GameHud;
   private pauseMenu?: PauseMenu;
+  private overMenu?: GameOverMenu;
   private paused = false;
+  private gameOver = false;
   private hurtCooldown = 0;
   private state!: GameState;
   private waves?: WaveManager;
@@ -114,10 +117,36 @@ export class DungeonScene extends Phaser.Scene {
     );
     this.pauseMenu.build();
 
+    this.overMenu = new GameOverMenu(
+      this,
+      () => this.scene.restart(),
+      () => window.dispatchEvent(new CustomEvent(GAME_EXIT_EVENT)),
+    );
+    this.overMenu.build();
+    this.state.on(GAME_EVENT.over, this.onGameOver, this);
+
     this.input.keyboard?.on("keydown-ESC", () => this.togglePause());
   }
 
+  private onGameOver(payload: GameOverPayload): void {
+    if (this.gameOver) return;
+    this.gameOver = true;
+
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    body.setVelocity(0, 0);
+    this.physics.world.pause();
+    this.pauseMenu?.hide();
+
+    this.overMenu?.show({
+      victory: payload.victory,
+      elapsedSec: this.state.elapsedSec,
+      kills: this.state.kills,
+      wave: this.state.wave,
+    });
+  }
+
   private togglePause(): void {
+    if (this.gameOver) return;
     this.setPaused(!this.paused);
   }
 
@@ -159,7 +188,7 @@ export class DungeonScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     if (!this.keys || !this.player) return;
-    if (this.paused) return;
+    if (this.paused || this.gameOver) return;
 
     if (this.hurtCooldown > 0) this.hurtCooldown -= delta;
 
