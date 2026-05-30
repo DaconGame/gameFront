@@ -18,6 +18,14 @@ import {
   ensureProceduralTiles,
   ensureVignetteTexture,
 } from "../tiles/proceduralTiles";
+import {
+  ENEMY_FRAME,
+  ENEMY_IDS,
+  ENEMY_DEFS,
+  enemySheetPath,
+  enemyTex,
+} from "../data/enemies";
+import { MERC_WALK_SOURCES } from "../data/mercs";
 
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -53,6 +61,23 @@ export class PreloadScene extends Phaser.Scene {
     for (const merc of MERC_ICON_SOURCES) {
       this.load.spritesheet(merc.tex, classSheetPath(merc.folder, "Idle"), classFrame);
     }
+
+    // 적 3종 스프라이트시트 (idle / walk / death)
+    const enemyFrame = { frameWidth: ENEMY_FRAME.width, frameHeight: ENEMY_FRAME.height };
+    for (const id of ENEMY_IDS) {
+      const folder = ENEMY_DEFS[id].folder;
+      this.load.spritesheet(enemyTex(id, "idle"), enemySheetPath(folder, "idle"), enemyFrame);
+      this.load.spritesheet(enemyTex(id, "walk"), enemySheetPath(folder, "walk"), enemyFrame);
+      this.load.spritesheet(enemyTex(id, "death"), enemySheetPath(folder, "death"), enemyFrame);
+    }
+
+    // 용병 전투용 walk 시트 (idle 은 HUD 아이콘 시트를 재사용)
+    for (const merc of MERC_WALK_SOURCES) {
+      this.load.spritesheet(merc.tex, merc.path, classFrame);
+    }
+
+    // 화살 투사체 (단일 이미지)
+    this.load.image(TEX.arrow, PACK_PATH.arrow);
 
     this.load.on("loaderror", (file: Phaser.Loader.File) => {
       console.warn(`[asset] missing, using fallback if any: ${file.key}`);

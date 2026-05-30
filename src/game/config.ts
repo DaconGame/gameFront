@@ -61,6 +61,7 @@ export const TEX = {
   procWallBR: "tex-proc-wall-br",
   procTorch: "tex-proc-torch",
   flameParticle: "tex-flame-particle",
+  arrow: "tex-arrow",
 } as const;
 
 export const PACK_PATH = {
@@ -70,6 +71,9 @@ export const PACK_PATH = {
   heroIdleUp: "assets/characters/hero/idle_up.png",
   heroIdleSide: "assets/characters/hero/idle_side.png",
   heroShadow: "assets/characters/hero/shadow.png",
+  arrow: encodeURI(
+    "assets/Tiny RPG Character Asset Pack v1.03 -Full 20 Characters/Characters(100x100)/Archer/Arrow(projectile)/Arrow02(100x100).png",
+  ),
 } as const;
 
 export const HERO_ANIM = {

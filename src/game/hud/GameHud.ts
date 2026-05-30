@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, HUD, MERC_HUD } from "../config";
+import { GAME_EVENT, type GameState } from "../state/GameState";
 
 const FONT = "Galmuri11, monospace";
 
@@ -25,12 +26,8 @@ type MercSlot = {
 
 export class GameHud {
   private readonly scene: Phaser.Scene;
+  private readonly state: GameState;
   private readonly layer: Phaser.GameObjects.Container;
-
-  private elapsedSec = 0;
-  private hp: number = HUD.playerMaxHp;
-  private readonly maxHp: number = HUD.playerMaxHp;
-  private wave = 1;
 
   private timerText!: Phaser.GameObjects.Text;
   private waveText!: Phaser.GameObjects.Text;
@@ -45,8 +42,9 @@ export class GameHud {
   private readonly hpBar = { x: HUD.margin + 14, y: HUD.margin + 30, w: 236, h: 14 };
   private readonly waveBarGeom = { w: 124, h: 6 };
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene, state: GameState) {
     this.scene = scene;
+    this.state = state;
     this.layer = scene.add
       .container(0, 0)
       .setScrollFactor(0)
@@ -57,38 +55,45 @@ export class GameHud {
     this.buildTopBar();
     this.buildMercBar();
     this.buildControlsHint();
+
+    // GameState 변경 이벤트만 구독해 화면을 갱신한다(상태와 표현의 분리).
+    this.state.on(GAME_EVENT.time, this.onTime, this);
+    this.state.on(GAME_EVENT.wave, this.onWave, this);
+    this.state.on(GAME_EVENT.hp, this.refreshHp, this);
+    this.state.on(GAME_EVENT.party, this.syncParty, this);
+
     this.refreshHp();
+    this.refreshTimer();
+    this.refreshWave();
+    this.syncParty(this.state.party);
+  }
+
+  private onTime(): void {
     this.refreshTimer();
     this.refreshWave();
   }
 
-  update(deltaMs: number): void {
-    const before = this.wave;
-    this.elapsedSec = Math.min(HUD.totalTimeSec, this.elapsedSec + deltaMs / 1000);
-    this.wave = Math.min(
-      HUD.totalWaves,
-      Math.floor(this.elapsedSec / HUD.waveSec) + 1,
-    );
-    this.refreshTimer();
+  private onWave(): void {
     this.refreshWave();
-    if (this.wave !== before) this.flashWave();
+    this.flashWave();
   }
 
-  setHp(value: number): void {
-    this.hp = Phaser.Math.Clamp(value, 0, this.maxHp);
-    this.refreshHp();
-  }
-
-  addMerc(id: string): void {
-    if (!MERC_HUD[id]) return;
-    const existing = this.slots.find((s) => s.id === id);
-    if (existing) {
-      existing.count += 1;
-      existing.badgeText.setText(`x${existing.count}`);
-      existing.badge.setVisible(existing.count > 1);
-      return;
+  /** GameState.party(중복 포함 배열)를 슬롯/수량 배지로 동기화한다. */
+  private syncParty(party: string[]): void {
+    const counts = new Map<string, number>();
+    for (const id of party) {
+      if (MERC_HUD[id]) counts.set(id, (counts.get(id) ?? 0) + 1);
     }
-    this.slots.push(this.createSlot(id));
+    for (const [id, count] of counts) {
+      let slot = this.slots.find((s) => s.id === id);
+      if (!slot) {
+        slot = this.createSlot(id);
+        this.slots.push(slot);
+      }
+      slot.count = count;
+      slot.badgeText.setText(`x${count}`);
+      slot.badge.setVisible(count > 1);
+    }
     this.layoutMercBar();
   }
 
@@ -172,7 +177,7 @@ export class GameHud {
   }
 
   private refreshHp(): void {
-    const ratio = this.hp / this.maxHp;
+    const ratio = this.state.hp / this.state.maxHp;
     const color = ratio > 0.5 ? COLOR.hpFull : ratio > 0.25 ? COLOR.hpMid : COLOR.hpLow;
 
     this.hpFill.clear();
@@ -188,11 +193,11 @@ export class GameHud {
         4,
       );
     }
-    this.hpValueText.setText(`${Math.ceil(this.hp)} / ${this.maxHp}`);
+    this.hpValueText.setText(`${Math.ceil(this.state.hp)} / ${this.state.maxHp}`);
   }
 
   private refreshTimer(): void {
-    const elapsed = Math.floor(this.elapsedSec);
+    const elapsed = Math.floor(this.state.elapsedSec);
     const mm = Math.floor(elapsed / 60);
     const ss = elapsed % 60;
     this.timerText.setText(`${mm}:${ss.toString().padStart(2, "0")}`);
@@ -200,10 +205,10 @@ export class GameHud {
 
   private refreshWave(): void {
     this.waveText.setText(
-      `${this.wave.toString().padStart(2, "0")} / ${HUD.totalWaves}`,
+      `${this.state.wave.toString().padStart(2, "0")} / ${HUD.totalWaves}`,
     );
 
-    const inWave = (this.elapsedSec % HUD.waveSec) / HUD.waveSec;
+    const inWave = (this.state.elapsedSec % HUD.waveSec) / HUD.waveSec;
     const x = this.waveProgress.getData("x") as number;
     const y = this.waveProgress.getData("y") as number;
     this.waveProgress.clear();

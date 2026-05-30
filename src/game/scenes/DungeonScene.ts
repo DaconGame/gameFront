@@ -17,6 +17,12 @@ import {
   WORLD_BOUNDARY,
 } from "../config";
 import { GameHud } from "../hud/GameHud";
+import { GameState } from "../state/GameState";
+import { ensureEnemyAnimations } from "../entities/Enemy";
+import { ensureMercAnimations } from "../entities/Mercenary";
+import { WaveManager } from "../systems/WaveManager";
+import { ProjectileManager } from "../systems/ProjectileManager";
+import { MercManager } from "../systems/MercManager";
 
 const GAME_EXIT_EVENT = "game:exit";
 const TORCH_ANIM_KEY = "torch-burn";
@@ -40,6 +46,10 @@ export class DungeonScene extends Phaser.Scene {
   private shadow!: Phaser.GameObjects.Image;
   private keys?: WasdKeys;
   private hud?: GameHud;
+  private state!: GameState;
+  private waves?: WaveManager;
+  private projectiles?: ProjectileManager;
+  private mercs?: MercManager;
   private facing: Facing = "down";
   private usingClass = false;
   private footOffset = HERO_FRAME.height * TILE_SCALE * 0.42;
@@ -57,13 +67,27 @@ export class DungeonScene extends Phaser.Scene {
       WORLD_BOUNDARY,
     );
 
+    this.state = new GameState();
+
     this.createInfiniteFloor();
     this.registerAnimations();
+    ensureEnemyAnimations(this);
+    ensureMercAnimations(this);
     this.spawnAmbientTorches();
     this.spawnPlayer();
     this.drawVignette();
     this.buildHud();
     this.setupInput();
+
+    this.waves = new WaveManager(this, this.state, () => this.player);
+    this.projectiles = new ProjectileManager(this, this.state, () => this.waves!.enemies);
+    this.mercs = new MercManager(
+      this,
+      this.state,
+      () => this.player,
+      () => this.waves!.enemies,
+      this.projectiles,
+    );
 
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
 
@@ -104,7 +128,9 @@ export class DungeonScene extends Phaser.Scene {
     this.floor.tilePositionX = this.cameras.main.scrollX;
     this.floor.tilePositionY = this.cameras.main.scrollY;
 
-    this.hud?.update(delta);
+    this.state.tick(delta);
+    this.waves?.update(delta);
+    this.mercs?.update(delta);
   }
 
   private createInfiniteFloor(): void {
@@ -306,12 +332,12 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private buildHud(): void {
-    this.hud = new GameHud(this);
+    this.hud = new GameHud(this, this.state);
     this.hud.build();
 
-    // 시작 용병 1명: 선택한 직업으로 파티를 시작한다.
+    // 시작 용병 1명: 선택한 직업으로 파티를 시작한다(이벤트로 HUD에 반영).
     const classId = this.registry.get("classId") as string | null;
-    this.hud.addMerc(classId ?? "sword");
+    this.state.addMerc(classId ?? "sword");
   }
 
   private setupInput(): void {
