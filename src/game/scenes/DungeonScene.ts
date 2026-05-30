@@ -52,6 +52,7 @@ export class DungeonScene extends Phaser.Scene {
   private mercs?: MercManager;
   private facing: Facing = "down";
   private usingClass = false;
+  private attacking = false;
   private footOffset = HERO_FRAME.height * TILE_SCALE * 0.42;
 
   constructor() {
@@ -87,6 +88,7 @@ export class DungeonScene extends Phaser.Scene {
       () => this.player,
       () => this.waves!.enemies,
       this.projectiles,
+      (targetX) => this.triggerAttackAnim(targetX),
     );
 
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
@@ -114,13 +116,14 @@ export class DungeonScene extends Phaser.Scene {
       if (this.usingClass) {
         if (dx < 0) this.player.setFlipX(true);
         else if (dx > 0) this.player.setFlipX(false);
-        this.player.play(CLASS_ANIM.walk, true);
+        // 공격 모션 재생 중에는 idle/walk 로 덮어쓰지 않는다.
+        if (!this.attacking) this.player.play(CLASS_ANIM.walk, true);
       } else {
         this.updateFacing(dx, dy);
       }
     } else {
       body.setVelocity(0, 0);
-      if (this.usingClass) this.player.play(CLASS_ANIM.idle, true);
+      if (this.usingClass && !this.attacking) this.player.play(CLASS_ANIM.idle, true);
     }
 
     this.shadow.setPosition(this.player.x, this.player.y + this.footOffset);
@@ -199,8 +202,33 @@ export class DungeonScene extends Phaser.Scene {
         repeat: -1,
       });
     }
+    if (classDef && this.textures.exists(TEX.classAttack) && !this.anims.exists(CLASS_ANIM.attack)) {
+      const img = this.textures.get(TEX.classAttack).getSourceImage() as HTMLImageElement;
+      const frameTotal = Math.max(1, Math.floor(img.width / CLASS_FRAME.width));
+      this.anims.create({
+        key: CLASS_ANIM.attack,
+        frames: this.anims.generateFrameNumbers(TEX.classAttack, {
+          start: 0,
+          end: frameTotal - 1,
+        }),
+        frameRate: 18,
+        repeat: 0,
+      });
+    }
   }
 
+  /** 플레이어가 공격할 때 직업 공격 모션을 1회 재생한다(이동 애니메이션을 잠시 막는다). */
+  triggerAttackAnim(targetX: number): void {
+    if (!this.usingClass || this.attacking || !this.anims.exists(CLASS_ANIM.attack)) return;
+    this.player.setFlipX(targetX < this.player.x);
+    this.attacking = true;
+    this.player.play(CLASS_ANIM.attack, true);
+    this.player.once("animationcomplete-" + CLASS_ANIM.attack, () => {
+      this.attacking = false;
+    });
+  }
+
+  /** 플레이어 = 선택한 직업 캐릭터(이동 + 자동 공격). 1명으로 시작한다. */
   private spawnPlayer(): void {
     this.usingClass = this.anims.exists(CLASS_ANIM.idle) && this.textures.exists(TEX.classIdle);
 
@@ -335,7 +363,7 @@ export class DungeonScene extends Phaser.Scene {
     this.hud = new GameHud(this, this.state);
     this.hud.build();
 
-    // 시작 용병 1명: 선택한 직업으로 파티를 시작한다(이벤트로 HUD에 반영).
+    // 파티 0번 = 플레이어 자신(선택한 직업). 추가 용병은 카드로 고용된다.
     const classId = this.registry.get("classId") as string | null;
     this.state.addMerc(classId ?? "sword");
   }

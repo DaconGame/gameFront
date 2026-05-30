@@ -46,6 +46,7 @@ export const TEX = {
   heroShadow: "tex-hero-shadow",
   classIdle: "tex-class-idle",
   classWalk: "tex-class-walk",
+  classAttack: "tex-class-attack",
   mercSword: "tex-merc-sword",
   mercBow: "tex-merc-bow",
   mercMage: "tex-merc-mage",
@@ -85,6 +86,7 @@ export const HERO_ANIM = {
 export const CLASS_ANIM = {
   idle: "class-idle",
   walk: "class-walk",
+  attack: "class-attack",
 } as const;
 
 export const CLASS_FRAME = { width: 100, height: 100 } as const;
@@ -97,16 +99,22 @@ export const CLASS_SCALE = 3;
 export const CLASS_ASSET_BASE =
   "assets/Tiny RPG Character Asset Pack v1.03 -Full 20 Characters/Characters(100x100)";
 
-export type ClassDef = { folder: string; idleFrames: number; walkFrames: number };
-
-export const CLASS_DEFS: Record<string, ClassDef> = {
-  sword: { folder: "Swordsman", idleFrames: 6, walkFrames: 8 },
-  bow: { folder: "Archer", idleFrames: 6, walkFrames: 8 },
-  mage: { folder: "Wizard", idleFrames: 6, walkFrames: 8 },
-  cleric: { folder: "Priest", idleFrames: 6, walkFrames: 8 },
+export type ClassDef = {
+  folder: string;
+  idleFrames: number;
+  walkFrames: number;
+  /** 공격 스프라이트시트 파일명 접미사 (예: "Attack01", "Attack"). */
+  attackFile: string;
 };
 
-export function classSheetPath(folder: string, anim: "Idle" | "Walk"): string {
+export const CLASS_DEFS: Record<string, ClassDef> = {
+  sword: { folder: "Swordsman", idleFrames: 6, walkFrames: 8, attackFile: "Attack01" },
+  bow: { folder: "Archer", idleFrames: 6, walkFrames: 8, attackFile: "Attack01" },
+  mage: { folder: "Wizard", idleFrames: 6, walkFrames: 8, attackFile: "Attack01" },
+  cleric: { folder: "Priest", idleFrames: 6, walkFrames: 8, attackFile: "Attack" },
+};
+
+export function classSheetPath(folder: string, anim: string): string {
   return encodeURI(`${CLASS_ASSET_BASE}/${folder}/${folder}/${folder}-${anim}.png`);
 }
 

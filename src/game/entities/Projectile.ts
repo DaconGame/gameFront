@@ -13,6 +13,8 @@ export type ProjectileConfig = {
   tint: number;
   maxRange: number;
   rotateToDir: boolean;
+  /** 충돌 판정용 원형 반경(텍스처 px 기준, 스프라이트 스케일이 곱해짐). */
+  bodyRadius: number;
 };
 
 const PROJECTILE_DEPTH = 22;
@@ -47,6 +49,9 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
 
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.enable = true;
+    // 프레임 전체가 아닌 실제 투사체 크기에 맞춘 작은 원형 충돌 박스 (프레임 중앙 정렬)
+    const r = Math.min(cfg.bodyRadius, this.width / 2, this.height / 2);
+    body.setCircle(r, this.width / 2 - r, this.height / 2 - r);
     body.setVelocity(Math.cos(cfg.angle) * cfg.speed, Math.sin(cfg.angle) * cfg.speed);
   }
 

@@ -52,10 +52,11 @@ export class ProjectileManager {
       damage,
       aoe: 0,
       texture: TEX.arrow,
-      scale: 0.5,
+      scale: 2.4,
       tint: 0xffffff,
       maxRange: 420,
       rotateToDir: true,
+      bodyRadius: 8,
     });
   }
 
@@ -78,10 +79,11 @@ export class ProjectileManager {
       damage,
       aoe: aoeRadius,
       texture: TEX.flameParticle,
-      scale: 2.4,
+      scale: 5,
       tint: MAGIC_TINT,
       maxRange: 400,
       rotateToDir: false,
+      bodyRadius: 4,
     });
   }
 
@@ -110,16 +112,29 @@ export class ProjectileManager {
 
   private spawnExplosion(cx: number, cy: number, radius: number): void {
     const ring = this.scene.add
-      .circle(cx, cy, radius * 0.5, MAGIC_TINT, 0.5)
+      .circle(cx, cy, radius, MAGIC_TINT, 0.55)
       .setDepth(23)
       .setBlendMode(Phaser.BlendModes.ADD);
     this.scene.tweens.add({
       targets: ring,
-      scale: { from: 0.4, to: 1.3 },
-      alpha: { from: 0.6, to: 0 },
-      duration: 280,
+      scale: { from: 0.5, to: 1.6 },
+      alpha: { from: 0.7, to: 0 },
+      duration: 340,
       ease: "Quad.out",
       onComplete: () => ring.destroy(),
+    });
+
+    const core = this.scene.add
+      .circle(cx, cy, radius * 0.55, 0xffffff, 0.6)
+      .setDepth(23)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    this.scene.tweens.add({
+      targets: core,
+      scale: { from: 0.6, to: 1.2 },
+      alpha: { from: 0.7, to: 0 },
+      duration: 220,
+      ease: "Quad.out",
+      onComplete: () => core.destroy(),
     });
   }
 }

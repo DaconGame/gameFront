@@ -50,11 +50,17 @@ export class PreloadScene extends Phaser.Scene {
 
     const classFrame = { frameWidth: CLASS_FRAME.width, frameHeight: CLASS_FRAME.height };
 
+    // 플레이어 본체 = 선택한 직업 캐릭터 (idle / walk)
     const classId = this.registry.get("classId") as string | null;
     const classDef = classId ? CLASS_DEFS[classId] : undefined;
     if (classDef) {
       this.load.spritesheet(TEX.classIdle, classSheetPath(classDef.folder, "Idle"), classFrame);
       this.load.spritesheet(TEX.classWalk, classSheetPath(classDef.folder, "Walk"), classFrame);
+      this.load.spritesheet(
+        TEX.classAttack,
+        classSheetPath(classDef.folder, classDef.attackFile),
+        classFrame,
+      );
     }
 
     // 하단 용병 바에서 사용할 4종 아이콘 스프라이트시트 (idle 1프레임을 아이콘으로 사용)
