@@ -1,5 +1,9 @@
 import Phaser from "phaser";
 import {
+  CLASS_ANIM,
+  CLASS_DEFS,
+  CLASS_FRAME,
+  CLASS_SCALE,
   GAME_HEIGHT,
   GAME_WIDTH,
   HERO_ANIM,
@@ -12,9 +16,19 @@ import {
   TORCH_FRAMES,
   WORLD_BOUNDARY,
 } from "../config";
+import { GameHud } from "../hud/GameHud";
+import { PauseMenu } from "../hud/PauseMenu";
+import { GameOverMenu } from "../hud/GameOverMenu";
+import { GAME_EVENT, GameState, type GameOverPayload } from "../state/GameState";
+import { Enemy, ensureEnemyAnimations } from "../entities/Enemy";
+import { ensureMercAnimations } from "../entities/Mercenary";
+import { WaveManager } from "../systems/WaveManager";
+import { ProjectileManager } from "../systems/ProjectileManager";
+import { MercManager } from "../systems/MercManager";
 
 const GAME_EXIT_EVENT = "game:exit";
 const TORCH_ANIM_KEY = "torch-burn";
+const HURT_IFRAME_MS = 700;
 
 type WasdKeys = {
   up: Phaser.Input.Keyboard.Key;
@@ -34,8 +48,20 @@ export class DungeonScene extends Phaser.Scene {
   private player!: Phaser.Physics.Arcade.Sprite;
   private shadow!: Phaser.GameObjects.Image;
   private keys?: WasdKeys;
-  private coordText?: Phaser.GameObjects.Text;
+  private hud?: GameHud;
+  private pauseMenu?: PauseMenu;
+  private overMenu?: GameOverMenu;
+  private paused = false;
+  private gameOver = false;
+  private hurtCooldown = 0;
+  private state!: GameState;
+  private waves?: WaveManager;
+  private projectiles?: ProjectileManager;
+  private mercs?: MercManager;
   private facing: Facing = "down";
+  private usingClass = false;
+  private attacking = false;
+  private footOffset = HERO_FRAME.height * TILE_SCALE * 0.42;
 
   constructor() {
     super({ key: "DungeonScene" });
@@ -50,23 +76,121 @@ export class DungeonScene extends Phaser.Scene {
       WORLD_BOUNDARY,
     );
 
+    this.state = new GameState();
+
     this.createInfiniteFloor();
     this.registerAnimations();
+    ensureEnemyAnimations(this);
+    ensureMercAnimations(this);
     this.spawnAmbientTorches();
     this.spawnPlayer();
     this.drawVignette();
-    this.drawHud();
+    this.buildHud();
     this.setupInput();
+
+    this.waves = new WaveManager(this, this.state, () => this.player);
+    this.projectiles = new ProjectileManager(this, this.state, () => this.waves!.enemies);
+    this.mercs = new MercManager(
+      this,
+      this.state,
+      () => this.player,
+      () => this.waves!.enemies,
+      this.projectiles,
+      (targetX) => this.triggerAttackAnim(targetX),
+    );
+
+    // 적과 몸이 닿으면 플레이어가 접촉 피해를 입는다.
+    this.physics.add.overlap(
+      this.player,
+      this.waves.enemies,
+      this.onEnemyContact as unknown as Phaser.Types.Physics.Arcade.ArcadePhysicsCallback,
+      undefined,
+      this,
+    );
 
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
 
-    this.input.keyboard?.on("keydown-ESC", () => {
-      window.dispatchEvent(new CustomEvent(GAME_EXIT_EVENT));
+    this.pauseMenu = new PauseMenu(
+      this,
+      () => this.setPaused(false),
+      () => window.dispatchEvent(new CustomEvent(GAME_EXIT_EVENT)),
+    );
+    this.pauseMenu.build();
+
+    this.overMenu = new GameOverMenu(
+      this,
+      () => this.scene.restart(),
+      () => window.dispatchEvent(new CustomEvent(GAME_EXIT_EVENT)),
+    );
+    this.overMenu.build();
+    this.state.on(GAME_EVENT.over, this.onGameOver, this);
+
+    this.input.keyboard?.on("keydown-ESC", () => this.togglePause());
+  }
+
+  private onGameOver(payload: GameOverPayload): void {
+    if (this.gameOver) return;
+    this.gameOver = true;
+
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    body.setVelocity(0, 0);
+    this.physics.world.pause();
+    this.pauseMenu?.hide();
+
+    this.overMenu?.show({
+      victory: payload.victory,
+      elapsedSec: this.state.elapsedSec,
+      kills: this.state.kills,
+      wave: this.state.wave,
     });
+  }
+
+  private togglePause(): void {
+    if (this.gameOver) return;
+    this.setPaused(!this.paused);
+  }
+
+  private setPaused(paused: boolean): void {
+    if (paused === this.paused) return;
+    this.paused = paused;
+
+    if (paused) {
+      const body = this.player.body as Phaser.Physics.Arcade.Body;
+      body.setVelocity(0, 0);
+      this.physics.world.pause();
+      this.pauseMenu?.show();
+    } else {
+      this.physics.world.resume();
+      this.pauseMenu?.hide();
+    }
+  }
+
+  /** 적과 겹칠 때 호출. 무적 시간이 끝났을 때만 해당 적의 피해량만큼 체력을 깎는다. */
+  private onEnemyContact(
+    _player: Phaser.GameObjects.GameObject,
+    enemyObj: Phaser.GameObjects.GameObject,
+  ): void {
+    if (this.paused || this.hurtCooldown > 0 || this.state.over) return;
+    const enemy = enemyObj as Enemy;
+    if (!enemy.targetable) return;
+
+    this.hurtCooldown = HURT_IFRAME_MS;
+    this.state.damagePlayer(enemy.damage);
+    this.flashPlayerHurt();
+  }
+
+  /** 피격 피드백: 플레이어를 붉게 깜빡이고 카메라를 살짝 흔든다. */
+  private flashPlayerHurt(): void {
+    this.player.setTint(0xff6b6b);
+    this.cameras.main.shake(120, 0.006);
+    this.time.delayedCall(140, () => this.player.clearTint());
   }
 
   update(_time: number, delta: number): void {
     if (!this.keys || !this.player) return;
+    if (this.paused || this.gameOver) return;
+
+    if (this.hurtCooldown > 0) this.hurtCooldown -= delta;
 
     let dx = 0;
     let dy = 0;
@@ -76,28 +200,31 @@ export class DungeonScene extends Phaser.Scene {
     if (this.keys.down.isDown || this.keys.s.isDown) dy += 1;
 
     const body = this.player.body as Phaser.Physics.Arcade.Body;
-    if (dx !== 0 || dy !== 0) {
+    const moving = dx !== 0 || dy !== 0;
+    if (moving) {
       const len = Math.hypot(dx, dy);
       body.setVelocity((dx / len) * PLAYER_SPEED, (dy / len) * PLAYER_SPEED);
-      this.updateFacing(dx, dy);
+      if (this.usingClass) {
+        if (dx < 0) this.player.setFlipX(true);
+        else if (dx > 0) this.player.setFlipX(false);
+        // 공격 모션 재생 중에는 idle/walk 로 덮어쓰지 않는다.
+        if (!this.attacking) this.player.play(CLASS_ANIM.walk, true);
+      } else {
+        this.updateFacing(dx, dy);
+      }
     } else {
       body.setVelocity(0, 0);
+      if (this.usingClass && !this.attacking) this.player.play(CLASS_ANIM.idle, true);
     }
 
-    this.shadow.setPosition(this.player.x, this.player.y + HERO_FRAME.height * TILE_SCALE * 0.42);
+    this.shadow.setPosition(this.player.x, this.player.y + this.footOffset);
 
     this.floor.tilePositionX = this.cameras.main.scrollX;
     this.floor.tilePositionY = this.cameras.main.scrollY;
 
-    if (this.coordText) {
-      const x = Math.round(this.player.x);
-      const y = Math.round(this.player.y);
-      this.coordText.setText(`X: ${x.toLocaleString()} / Y: ${y.toLocaleString()}`);
-    }
-
-    // delta is unused for now (Arcade physics handles dt), keep param for the
-    // signature so we don't have to widen it later.
-    void delta;
+    this.state.tick(delta);
+    this.waves?.update(delta);
+    this.mercs?.update(delta);
   }
 
   private createInfiniteFloor(): void {
@@ -141,9 +268,66 @@ export class DungeonScene extends Phaser.Scene {
     idleAnim(HERO_ANIM.idleDown, TEX.heroIdleDown);
     idleAnim(HERO_ANIM.idleUp, TEX.heroIdleUp);
     idleAnim(HERO_ANIM.idleSide, TEX.heroIdleSide);
+
+    const classId = this.registry.get("classId") as string | null;
+    const classDef = classId ? CLASS_DEFS[classId] : undefined;
+    if (classDef && this.textures.exists(TEX.classIdle) && !this.anims.exists(CLASS_ANIM.idle)) {
+      this.anims.create({
+        key: CLASS_ANIM.idle,
+        frames: this.anims.generateFrameNumbers(TEX.classIdle, {
+          start: 0,
+          end: classDef.idleFrames - 1,
+        }),
+        frameRate: 8,
+        repeat: -1,
+      });
+    }
+    if (classDef && this.textures.exists(TEX.classWalk) && !this.anims.exists(CLASS_ANIM.walk)) {
+      this.anims.create({
+        key: CLASS_ANIM.walk,
+        frames: this.anims.generateFrameNumbers(TEX.classWalk, {
+          start: 0,
+          end: classDef.walkFrames - 1,
+        }),
+        frameRate: 12,
+        repeat: -1,
+      });
+    }
+    if (classDef && this.textures.exists(TEX.classAttack) && !this.anims.exists(CLASS_ANIM.attack)) {
+      const img = this.textures.get(TEX.classAttack).getSourceImage() as HTMLImageElement;
+      const frameTotal = Math.max(1, Math.floor(img.width / CLASS_FRAME.width));
+      this.anims.create({
+        key: CLASS_ANIM.attack,
+        frames: this.anims.generateFrameNumbers(TEX.classAttack, {
+          start: 0,
+          end: frameTotal - 1,
+        }),
+        frameRate: 18,
+        repeat: 0,
+      });
+    }
   }
 
+  /** 플레이어가 공격할 때 직업 공격 모션을 1회 재생한다(이동 애니메이션을 잠시 막는다). */
+  triggerAttackAnim(targetX: number): void {
+    if (!this.usingClass || this.attacking || !this.anims.exists(CLASS_ANIM.attack)) return;
+    this.player.setFlipX(targetX < this.player.x);
+    this.attacking = true;
+    this.player.play(CLASS_ANIM.attack, true);
+    this.player.once("animationcomplete-" + CLASS_ANIM.attack, () => {
+      this.attacking = false;
+    });
+  }
+
+  /** 플레이어 = 선택한 직업 캐릭터(이동 + 자동 공격). 1명으로 시작한다. */
   private spawnPlayer(): void {
+    this.usingClass = this.anims.exists(CLASS_ANIM.idle) && this.textures.exists(TEX.classIdle);
+
+    if (this.usingClass) {
+      this.spawnClassPlayer();
+      return;
+    }
+
     this.shadow = this.add
       .image(0, 0, TEX.heroShadow)
       .setOrigin(0.5, 0.5)
@@ -163,6 +347,32 @@ export class DungeonScene extends Phaser.Scene {
     body.setCollideWorldBounds(false);
   }
 
+  private spawnClassPlayer(): void {
+    const feetY = 58;
+    const feetRatio = feetY / CLASS_FRAME.height;
+    this.footOffset = 4;
+
+    this.shadow = this.add
+      .image(0, 0, TEX.heroShadow)
+      .setOrigin(0.5, 0.875)
+      .setScale(TILE_SCALE * 1.5)
+      .setAlpha(0.5)
+      .setDepth(19);
+
+    this.player = this.physics.add.sprite(0, 0, TEX.classIdle, 0);
+    this.player.setScale(CLASS_SCALE);
+    this.player.setDepth(20);
+    this.player.setOrigin(0.5, feetRatio);
+    this.player.play(CLASS_ANIM.idle);
+
+    const bodyW = 22;
+    const bodyH = 20;
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    body.setSize(bodyW, bodyH);
+    body.setOffset((CLASS_FRAME.width - bodyW) / 2, feetY - bodyH);
+    body.setCollideWorldBounds(false);
+  }
+
   private updateFacing(dx: number, dy: number): void {
     let next: Facing;
     if (Math.abs(dx) >= Math.abs(dy)) {
@@ -179,7 +389,6 @@ export class DungeonScene extends Phaser.Scene {
     this.player.play(animKey, true);
   }
 
-  /** Atmospheric torches placed in world space around origin. They scroll with the camera. */
   private spawnAmbientTorches(): void {
     const ringRadius = 360;
     const positions = [
@@ -241,35 +450,13 @@ export class DungeonScene extends Phaser.Scene {
       .setBlendMode(Phaser.BlendModes.MULTIPLY);
   }
 
-  private drawHud(): void {
-    const cx = GAME_WIDTH / 2;
-    const fix = (t: Phaser.GameObjects.Text) => t.setScrollFactor(0).setDepth(30);
+  private buildHud(): void {
+    this.hud = new GameHud(this, this.state);
+    this.hud.build();
 
-    fix(
-      this.add
-        .text(
-          cx,
-          GAME_HEIGHT - 28,
-          "[WASD / 방향키] 이동 · [ESC] 타이틀로 돌아가기",
-          {
-            fontFamily: "Galmuri11, monospace",
-            fontSize: "13px",
-            color: HEX.ash,
-          },
-        )
-        .setOrigin(0.5)
-        .setShadow(0, 1, "#000", 3, true, true),
-    );
-
-    this.coordText = this.add
-      .text(GAME_WIDTH - 20, 20, "X: 0 / Y: 0", {
-        fontFamily: "Galmuri11, monospace",
-        fontSize: "14px",
-        color: HEX.ash,
-      })
-      .setOrigin(1, 0)
-      .setShadow(0, 1, "#000", 3, true, true);
-    fix(this.coordText);
+    // 파티 0번 = 플레이어 자신(선택한 직업). 추가 용병은 카드로 고용된다.
+    const classId = this.registry.get("classId") as string | null;
+    this.state.addMerc(classId ?? "sword");
   }
 
   private setupInput(): void {

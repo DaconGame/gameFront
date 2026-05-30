@@ -1,28 +1,62 @@
-import { useEffect, useState } from "react";
+import { Navigate, Route, Routes, useNavigate, useSearchParams } from "react-router-dom";
+import { useEventListener } from "usehooks-ts";
 import { TitleScreen } from "./ui/TitleScreen.tsx";
+import { CharacterSelectModal } from "./ui/CharacterSelectModal.tsx";
 import { PhaserGame } from "./game/PhaserGame.tsx";
 
-type Screen = "title" | "game";
+function TitlePage() {
+  const navigate = useNavigate();
+  return <TitleScreen onStart={() => navigate("/game")} />;
+}
+
+function GamePage() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedClass = searchParams.get("class");
+
+  useEventListener("game:exit", () => {
+    if (selectedClass) navigate("/");
+  });
+
+  if (!selectedClass) {
+    return (
+      <div className="fixed inset-0 overflow-hidden bg-dungeon-deepest">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: "url(/assets/ui/select-bg.png)",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            imageRendering: "pixelated",
+            filter: "brightness(0.85)",
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "radial-gradient(ellipse at 50% 45%, rgba(5,3,9,0.25) 0%, rgba(5,3,9,0.88) 100%)",
+          }}
+        />
+        <CharacterSelectModal
+          open
+          onClose={() => navigate("/")}
+          onSelect={(classId) => setSearchParams({ class: classId }, { replace: true })}
+        />
+      </div>
+    );
+  }
+
+  return <PhaserGame classId={selectedClass} />;
+}
 
 function App() {
-  const [screen, setScreen] = useState<Screen>("title");
-
-  useEffect(() => {
-    const onExit = () => setScreen("title");
-    window.addEventListener("game:exit", onExit);
-    return () => window.removeEventListener("game:exit", onExit);
-  }, []);
-
-  useEffect(() => {
-    if (screen !== "game") return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setScreen("title");
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [screen]);
-
-  return screen === "title" ? <TitleScreen onStart={() => setScreen("game")} /> : <PhaserGame />;
+  return (
+    <Routes>
+      <Route path="/" element={<TitlePage />} />
+      <Route path="/game" element={<GamePage />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 }
 
 export default App;

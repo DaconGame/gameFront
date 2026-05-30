@@ -1,19 +1,31 @@
 import Phaser from "phaser";
 import {
+  CLASS_DEFS,
+  CLASS_FRAME,
   FLOOR_PATCH_TILES,
   GAME_HEIGHT,
   GAME_WIDTH,
   HERO_FRAME,
+  MERC_ICON_SOURCES,
   PACK_PATH,
   TEX,
   TILE,
   TILE_SIZE,
+  classSheetPath,
 } from "../config";
 import {
   ensureFloorPatch,
   ensureProceduralTiles,
   ensureVignetteTexture,
 } from "../tiles/proceduralTiles";
+import {
+  ENEMY_FRAME,
+  ENEMY_IDS,
+  ENEMY_DEFS,
+  enemySheetPath,
+  enemyTex,
+} from "../data/enemies";
+import { MERC_WALK_SOURCES } from "../data/mercs";
 
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -35,6 +47,43 @@ export class PreloadScene extends Phaser.Scene {
     this.load.spritesheet(TEX.heroIdleUp, PACK_PATH.heroIdleUp, heroFrame);
     this.load.spritesheet(TEX.heroIdleSide, PACK_PATH.heroIdleSide, heroFrame);
     this.load.image(TEX.heroShadow, PACK_PATH.heroShadow);
+
+    const classFrame = { frameWidth: CLASS_FRAME.width, frameHeight: CLASS_FRAME.height };
+
+    // 플레이어 본체 = 선택한 직업 캐릭터 (idle / walk)
+    const classId = this.registry.get("classId") as string | null;
+    const classDef = classId ? CLASS_DEFS[classId] : undefined;
+    if (classDef) {
+      this.load.spritesheet(TEX.classIdle, classSheetPath(classDef.folder, "Idle"), classFrame);
+      this.load.spritesheet(TEX.classWalk, classSheetPath(classDef.folder, "Walk"), classFrame);
+      this.load.spritesheet(
+        TEX.classAttack,
+        classSheetPath(classDef.folder, classDef.attackFile),
+        classFrame,
+      );
+    }
+
+    // 하단 용병 바에서 사용할 4종 아이콘 스프라이트시트 (idle 1프레임을 아이콘으로 사용)
+    for (const merc of MERC_ICON_SOURCES) {
+      this.load.spritesheet(merc.tex, classSheetPath(merc.folder, "Idle"), classFrame);
+    }
+
+    // 적 3종 스프라이트시트 (idle / walk / death)
+    const enemyFrame = { frameWidth: ENEMY_FRAME.width, frameHeight: ENEMY_FRAME.height };
+    for (const id of ENEMY_IDS) {
+      const folder = ENEMY_DEFS[id].folder;
+      this.load.spritesheet(enemyTex(id, "idle"), enemySheetPath(folder, "idle"), enemyFrame);
+      this.load.spritesheet(enemyTex(id, "walk"), enemySheetPath(folder, "walk"), enemyFrame);
+      this.load.spritesheet(enemyTex(id, "death"), enemySheetPath(folder, "death"), enemyFrame);
+    }
+
+    // 용병 전투용 walk 시트 (idle 은 HUD 아이콘 시트를 재사용)
+    for (const merc of MERC_WALK_SOURCES) {
+      this.load.spritesheet(merc.tex, merc.path, classFrame);
+    }
+
+    // 화살 투사체 (단일 이미지)
+    this.load.image(TEX.arrow, PACK_PATH.arrow);
 
     this.load.on("loaderror", (file: Phaser.Loader.File) => {
       console.warn(`[asset] missing, using fallback if any: ${file.key}`);

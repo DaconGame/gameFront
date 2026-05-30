@@ -44,6 +44,13 @@ export const TEX = {
   heroIdleUp: "tex-hero-idle-up",
   heroIdleSide: "tex-hero-idle-side",
   heroShadow: "tex-hero-shadow",
+  classIdle: "tex-class-idle",
+  classWalk: "tex-class-walk",
+  classAttack: "tex-class-attack",
+  mercSword: "tex-merc-sword",
+  mercBow: "tex-merc-bow",
+  mercMage: "tex-merc-mage",
+  mercCleric: "tex-merc-cleric",
   procFloor: "tex-proc-floor",
   procFloorAlt: "tex-proc-floor-alt",
   procWallTop: "tex-proc-wall-top",
@@ -55,6 +62,7 @@ export const TEX = {
   procWallBR: "tex-proc-wall-br",
   procTorch: "tex-proc-torch",
   flameParticle: "tex-flame-particle",
+  arrow: "tex-arrow",
 } as const;
 
 export const PACK_PATH = {
@@ -64,6 +72,9 @@ export const PACK_PATH = {
   heroIdleUp: "assets/characters/hero/idle_up.png",
   heroIdleSide: "assets/characters/hero/idle_side.png",
   heroShadow: "assets/characters/hero/shadow.png",
+  arrow: encodeURI(
+    "assets/Tiny RPG Character Asset Pack v1.03 -Full 20 Characters/Characters(100x100)/Archer/Arrow(projectile)/Arrow02(100x100).png",
+  ),
 } as const;
 
 export const HERO_ANIM = {
@@ -71,6 +82,41 @@ export const HERO_ANIM = {
   idleUp: "hero-idle-up",
   idleSide: "hero-idle-side",
 } as const;
+
+export const CLASS_ANIM = {
+  idle: "class-idle",
+  walk: "class-walk",
+  attack: "class-attack",
+} as const;
+
+export const CLASS_FRAME = { width: 100, height: 100 } as const;
+/**
+ * 100x100 프레임 안에서 실제 캐릭터는 ~20px 높이로 가운데 작게 들어있다.
+ * 기존 영웅과 비슷한 화면 크기(약 60px)가 되도록 크게 확대한다.
+ */
+export const CLASS_SCALE = 3;
+
+export const CLASS_ASSET_BASE =
+  "assets/Tiny RPG Character Asset Pack v1.03 -Full 20 Characters/Characters(100x100)";
+
+export type ClassDef = {
+  folder: string;
+  idleFrames: number;
+  walkFrames: number;
+  /** 공격 스프라이트시트 파일명 접미사 (예: "Attack01", "Attack"). */
+  attackFile: string;
+};
+
+export const CLASS_DEFS: Record<string, ClassDef> = {
+  sword: { folder: "Swordsman", idleFrames: 6, walkFrames: 8, attackFile: "Attack01" },
+  bow: { folder: "Archer", idleFrames: 6, walkFrames: 8, attackFile: "Attack01" },
+  mage: { folder: "Wizard", idleFrames: 6, walkFrames: 8, attackFile: "Attack01" },
+  cleric: { folder: "Priest", idleFrames: 6, walkFrames: 8, attackFile: "Attack" },
+};
+
+export function classSheetPath(folder: string, anim: string): string {
+  return encodeURI(`${CLASS_ASSET_BASE}/${folder}/${folder}/${folder}-${anim}.png`);
+}
 
 export const TILE = {
   cornerTL: 0,
@@ -85,3 +131,34 @@ export const TILE = {
 } as const;
 
 export const TORCH_FRAMES = [0, 1, 2] as const;
+
+/** 인게임 HUD(상단 정보 바 / 하단 용병 바) 설정 값 */
+export const HUD = {
+  depth: 40,
+  margin: 16,
+  panelHeight: 56,
+  totalTimeSec: 600,
+  waveSec: 30,
+  totalWaves: 20,
+  playerMaxHp: 100,
+  slotBox: 60,
+  slotGap: 10,
+} as const;
+
+export type MercHudInfo = { label: string; color: number; tex: string };
+
+/** 하단 용병 슬롯/아이콘에서 사용하는 직업별 메타데이터 */
+export const MERC_HUD: Record<string, MercHudInfo> = {
+  sword: { label: "검사", color: 0xff6b6b, tex: TEX.mercSword },
+  bow: { label: "궁수", color: 0x6bd96b, tex: TEX.mercBow },
+  mage: { label: "마법사", color: 0xc47aff, tex: TEX.mercMage },
+  cleric: { label: "성직자", color: 0xffe066, tex: TEX.mercCleric },
+};
+
+/** 직업 id → 용병 아이콘 텍스처 로딩 정보 (PreloadScene 에서 사용) */
+export const MERC_ICON_SOURCES: Array<{ id: string; tex: string; folder: string }> =
+  Object.keys(MERC_HUD).map((id) => ({
+    id,
+    tex: MERC_HUD[id].tex,
+    folder: CLASS_DEFS[id].folder,
+  }));

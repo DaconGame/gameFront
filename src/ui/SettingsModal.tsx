@@ -1,4 +1,5 @@
-import { useEffect, useState, type ChangeEvent } from "react";
+import { type ChangeEvent } from "react";
+import { useLocalStorage } from "usehooks-ts";
 import { Modal } from "./Modal";
 
 const LS_KEY = "dacon_game.settings.v1";
@@ -16,33 +17,27 @@ function clamp(n: number): number {
   return Math.max(0, Math.min(100, Math.round(n)));
 }
 
-function loadSettings(): Settings {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return DEFAULTS;
-    const parsed = JSON.parse(raw) as Partial<Settings>;
-    return {
-      master: clamp(parsed.master ?? DEFAULTS.master),
-      sfx: clamp(parsed.sfx ?? DEFAULTS.sfx),
-      music: clamp(parsed.music ?? DEFAULTS.music),
-    };
-  } catch {
-    return DEFAULTS;
-  }
+function sanitize(parsed: Partial<Settings>): Settings {
+  return {
+    master: clamp(parsed.master ?? DEFAULTS.master),
+    sfx: clamp(parsed.sfx ?? DEFAULTS.sfx),
+    music: clamp(parsed.music ?? DEFAULTS.music),
+  };
 }
 
 type Props = { open: boolean; onClose: () => void };
 
 export function SettingsModal({ open, onClose }: Props) {
-  const [settings, setSettings] = useState<Settings>(loadSettings);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(LS_KEY, JSON.stringify(settings));
-    } catch {
-      /* localStorage 사용 불가 환경(예: 시크릿 모드) 무시 */
-    }
-  }, [settings]);
+  // useLocalStorage 가 읽기/쓰기/탭 간 동기화를 모두 처리한다(저장용 useEffect 불필요).
+  const [settings, setSettings] = useLocalStorage<Settings>(LS_KEY, DEFAULTS, {
+    deserializer: (raw) => {
+      try {
+        return sanitize(JSON.parse(raw) as Partial<Settings>);
+      } catch {
+        return DEFAULTS;
+      }
+    },
+  });
 
   const update = (key: keyof Settings) => (e: ChangeEvent<HTMLInputElement>) => {
     setSettings((s) => ({ ...s, [key]: clamp(Number(e.target.value)) }));
