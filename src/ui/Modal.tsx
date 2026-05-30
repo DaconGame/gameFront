@@ -1,4 +1,5 @@
-import { useEffect, type ReactNode } from "react";
+import { type ReactNode } from "react";
+import { useEventListener } from "usehooks-ts";
 
 type ModalProps = {
   open: boolean;
@@ -8,14 +9,9 @@ type ModalProps = {
 };
 
 export function Modal({ open, title, onClose, children }: ModalProps) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  useEventListener("keydown", (e) => {
+    if (open && e.key === "Escape") onClose();
+  });
 
   if (!open) return null;
 

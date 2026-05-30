@@ -1,5 +1,5 @@
-import { useEffect } from "react";
 import { Navigate, Route, Routes, useNavigate, useSearchParams } from "react-router-dom";
+import { useEventListener } from "usehooks-ts";
 import { TitleScreen } from "./ui/TitleScreen.tsx";
 import { CharacterSelectModal } from "./ui/CharacterSelectModal.tsx";
 import { PhaserGame } from "./game/PhaserGame.tsx";
@@ -14,12 +14,9 @@ function GamePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedClass = searchParams.get("class");
 
-  useEffect(() => {
-    if (!selectedClass) return;
-    const onExit = () => navigate("/");
-    window.addEventListener("game:exit", onExit);
-    return () => window.removeEventListener("game:exit", onExit);
-  }, [navigate, selectedClass]);
+  useEventListener("game:exit", () => {
+    if (selectedClass) navigate("/");
+  });
 
   if (!selectedClass) {
     return (
