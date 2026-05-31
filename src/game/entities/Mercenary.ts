@@ -3,6 +3,7 @@ import { CLASS_DEFS } from "../config";
 import {
   MERC_COMBAT,
   mercAnimKey,
+  mercAttackTex,
   mercIdleTex,
   mercWalkTex,
   type MercCombat,
@@ -18,6 +19,7 @@ export class Mercenary extends Phaser.GameObjects.Sprite {
   readonly combat: MercCombat;
   private cooldownLeft = 0;
   private moving = false;
+  private attacking = false;
 
   constructor(scene: Phaser.Scene, id: string) {
     super(scene, 0, 0, mercIdleTex(id), 0);
@@ -41,13 +43,11 @@ export class Mercenary extends Phaser.GameObjects.Sprite {
       this.x += dx * FOLLOW_LERP;
       this.y += dy * FOLLOW_LERP;
       if (Math.abs(dx) > 0.5) this.setFlipX(dx < 0);
-      if (!this.moving) {
-        this.moving = true;
-        this.play(mercAnimKey(this.mercId, "walk"), true);
-      }
+      this.moving = true;
+      if (!this.attacking) this.playLocomotion();
     } else if (this.moving) {
       this.moving = false;
-      this.play(mercAnimKey(this.mercId, "idle"), true);
+      if (!this.attacking) this.playLocomotion();
     }
   }
 
@@ -69,6 +69,17 @@ export class Mercenary extends Phaser.GameObjects.Sprite {
 
   /** 공격 순간의 가벼운 시각 피드백(살짝 커졌다 돌아옴). */
   playAttackCue(): void {
+    const attackKey = mercAnimKey(this.mercId, "attack");
+    if (this.scene.anims.exists(attackKey)) {
+      this.attacking = true;
+      this.off(`animationcomplete-${attackKey}`);
+      this.play(attackKey, true);
+      this.once(`animationcomplete-${attackKey}`, () => {
+        this.attacking = false;
+        this.playLocomotion();
+      });
+    }
+
     this.scene.tweens.add({
       targets: this,
       scaleX: { from: this.combat.scale * 1.15, to: this.combat.scale },
@@ -76,6 +87,11 @@ export class Mercenary extends Phaser.GameObjects.Sprite {
       duration: 200,
       ease: "Quad.out",
     });
+  }
+
+  private playLocomotion(): void {
+    const key = mercAnimKey(this.mercId, this.moving ? "walk" : "idle");
+    if (this.anims.currentAnim?.key !== key) this.play(key, true);
   }
 }
 
@@ -107,6 +123,21 @@ export function ensureMercAnimations(scene: Phaser.Scene): void {
         }),
         frameRate: 12,
         repeat: -1,
+      });
+    }
+
+    const attackKey = mercAnimKey(id, "attack");
+    if (scene.textures.exists(mercAttackTex(id)) && !scene.anims.exists(attackKey)) {
+      const img = scene.textures.get(mercAttackTex(id)).getSourceImage() as HTMLImageElement;
+      const frameTotal = Math.max(1, Math.floor(img.width / 100));
+      scene.anims.create({
+        key: attackKey,
+        frames: scene.anims.generateFrameNumbers(mercAttackTex(id), {
+          start: 0,
+          end: frameTotal - 1,
+        }),
+        frameRate: def.attackFrameRate ?? 18,
+        repeat: 0,
       });
     }
   }

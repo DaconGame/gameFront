@@ -25,7 +25,7 @@ import {
   enemySheetPath,
   enemyTex,
 } from "../data/enemies";
-import { MERC_WALK_SOURCES } from "../data/mercs";
+import { MERC_ATTACK_SOURCES, MERC_WALK_SOURCES } from "../data/mercs";
 
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -82,6 +82,10 @@ export class PreloadScene extends Phaser.Scene {
 
     // 용병 전투용 walk 시트 (idle 은 HUD 아이콘 시트를 재사용)
     for (const merc of MERC_WALK_SOURCES) {
+      this.load.spritesheet(merc.tex, merc.path, classFrame);
+    }
+
+    for (const merc of MERC_ATTACK_SOURCES) {
       this.load.spritesheet(merc.tex, merc.path, classFrame);
     }
 

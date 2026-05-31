@@ -46,13 +46,20 @@ export const MERC_COMBAT: Record<string, MercCombat> = {
 };
 
 export const mercWalkTex = (id: string): string => `tex-mercwalk-${id}`;
+export const mercAttackTex = (id: string): string => `tex-mercattack-${id}`;
 /** idle 텍스처는 HUD 아이콘과 동일 시트를 재사용한다. */
 export const mercIdleTex = (id: string): string => MERC_HUD[id].tex;
-export const mercAnimKey = (id: string, kind: "idle" | "walk"): string => `mercb-${id}-${kind}`;
+export const mercAnimKey = (id: string, kind: "idle" | "walk" | "attack"): string => `mercb-${id}-${kind}`;
 
 /** PreloadScene 에서 추가로 로드할 용병 walk 스프라이트시트 정보. */
 export const MERC_WALK_SOURCES = Object.keys(MERC_COMBAT).map((id) => ({
   id,
   tex: mercWalkTex(id),
   path: classSheetPath(CLASS_DEFS[id].folder, "Walk"),
+}));
+
+export const MERC_ATTACK_SOURCES = Object.keys(MERC_COMBAT).map((id) => ({
+  id,
+  tex: mercAttackTex(id),
+  path: classSheetPath(CLASS_DEFS[id].folder, CLASS_DEFS[id].attackFile),
 }));
