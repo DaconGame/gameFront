@@ -77,6 +77,7 @@ export class DungeonScene extends Phaser.Scene {
   private mercs?: MercManager;
   private sfx!: SfxManager;
   private boss?: Enemy;
+  private bossAura?: Phaser.GameObjects.Container;
   private facing: Facing = "down";
   private usingClass = false;
   private attacking = false;
@@ -193,6 +194,8 @@ export class DungeonScene extends Phaser.Scene {
     this.gameOver = true;
     this.waitingForUpgrade = false;
     this.hideUpgradeWait();
+    this.clearBossVisuals();
+    this.hud?.hideBossBar();
 
     const body = this.player.body as Phaser.Physics.Arcade.Body;
     body.setVelocity(0, 0);
@@ -308,7 +311,11 @@ export class DungeonScene extends Phaser.Scene {
     this.mercs?.update(delta);
     this.tutorial?.update(delta, moving);
 
-    if (this.boss?.targetable) this.hud?.updateBossHp(this.boss.hp);
+    if (this.boss?.targetable) {
+      this.hud?.updateBossHp(this.boss.hp);
+      const c = this.boss.getCenter();
+      this.bossAura?.setPosition(c.x, c.y);
+    }
   }
 
   private onUpgradeRequest(payload: UpgradeRequestPayload): void {
@@ -321,7 +328,11 @@ export class DungeonScene extends Phaser.Scene {
     this.showUpgradeWait(payload);
     this.sfx.play("uiConfirm");
 
-    window.dispatchEvent(new CustomEvent(UPGRADE_REQUEST_EVENT, { detail: payload }));
+    window.dispatchEvent(
+      new CustomEvent(UPGRADE_REQUEST_EVENT, {
+        detail: { ...payload, mercFull: this.state.mercFull },
+      }),
+    );
   }
 
   private completeUpgradeWait(upgradeId?: string): void {
@@ -380,7 +391,7 @@ export class DungeonScene extends Phaser.Scene {
     }
   }
 
-  /** 보스 라운드 시작: 보스 스폰 + 배너 + 체력바. */
+  /** 보스 라운드 시작: 보스 스폰 + 배너 + 체력바 + 보스 전용 연출. */
   private onBossStart(payload: BossStartPayload): void {
     if (this.gameOver) return;
     this.sfx.play("encounter");
@@ -388,16 +399,58 @@ export class DungeonScene extends Phaser.Scene {
     if (boss) {
       boss.onDeath = () => this.state.defeatBoss();
       this.boss = boss;
+      this.attachBossAura(boss);
       this.hud?.showBossBar(boss.def.label, boss.maxHp);
       this.showBossBanner(boss.def.label);
     }
     this.cameras.main.shake(280, 0.008);
   }
 
-  /** 보스 격파: 체력바를 내리고 참조를 정리한다. */
+  /** 보스 격파/종료: 연출·체력바·참조를 정리한다. */
   private onBossEnd(): void {
+    this.clearBossVisuals();
     this.boss = undefined;
     this.hud?.hideBossBar();
+  }
+
+  /** 잡몹과 구분되도록 보스에 맥동하는 붉은 이중 오라를 입힌다. */
+  private attachBossAura(boss: Enemy): void {
+    const aura = this.add.container(boss.x, boss.y).setDepth(13);
+    const radius = boss.displayHeight * 0.13;
+    const halo = this.add
+      .circle(0, 0, radius * 1.35, 0x8a0d0d, 0.2)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    const glow = this.add
+      .circle(0, 0, radius, 0xff2a2a, 0.26)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    const ring = this.add
+      .circle(0, 0, radius * 0.84)
+      .setStrokeStyle(3, 0xff6a3a, 0.9)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    aura.add([halo, glow, ring]);
+
+    this.tweens.add({
+      targets: aura,
+      scale: { from: 0.9, to: 1.14 },
+      duration: 620,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.inOut",
+    });
+    this.tweens.add({
+      targets: glow,
+      alpha: { from: 0.26, to: 0.5 },
+      duration: 520,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.inOut",
+    });
+    this.bossAura = aura;
+  }
+
+  private clearBossVisuals(): void {
+    this.bossAura?.destroy(true);
+    this.bossAura = undefined;
   }
 
   private showBossBanner(name: string): void {
@@ -485,6 +538,8 @@ export class DungeonScene extends Phaser.Scene {
     }
     this.tutorial?.destroy();
     this.tutorial = undefined;
+    this.bossAura?.destroy(true);
+    this.bossAura = undefined;
   }
 
   private createInfiniteFloor(): void {
