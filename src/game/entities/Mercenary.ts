@@ -71,8 +71,8 @@ export class Mercenary extends Phaser.GameObjects.Sprite {
   playAttackCue(): void {
     this.scene.tweens.add({
       targets: this,
-      scaleX: { from: this.combat.scale * 1.35, to: this.combat.scale },
-      scaleY: { from: this.combat.scale * 1.35, to: this.combat.scale },
+      scaleX: { from: this.combat.scale * 1.15, to: this.combat.scale },
+      scaleY: { from: this.combat.scale * 1.15, to: this.combat.scale },
       duration: 200,
       ease: "Quad.out",
     });
