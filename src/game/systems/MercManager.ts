@@ -5,10 +5,8 @@ import { MERC_COMBAT, type MercCombat } from "../data/mercs";
 import { GAME_EVENT, type GameState } from "../state/GameState";
 import type { ProjectileManager } from "./ProjectileManager";
 
-const CLUMP_COLUMNS = 5;
 const CLUMP_SPACING_X = 32;
 const CLUMP_SPACING_Y = 20;
-const CLUMP_Y_OFFSET = 14;
 
 /**
  * 파티(GameState.party)에 맞춰 전투를 조율한다.
@@ -67,10 +65,11 @@ export class MercManager {
     this.runPlayerCombat(player, deltaMs);
 
     this.mercs.forEach((merc, i) => {
-      const offset = this.clumpOffset(i, this.mercs.length);
+      const offset = this.clumpOffset(i);
       const tx = player.x + offset.x;
       const ty = player.y + offset.y;
       merc.steer(tx, ty);
+      merc.setDepth(merc.y > player.y ? 21 : 18);
       merc.tickCooldown(deltaMs);
       this.runCombat(merc, player);
     });
@@ -171,15 +170,37 @@ export class MercManager {
     return new Phaser.Math.Vector2(body.center.x, body.center.y);
   }
 
-  private clumpOffset(index: number, total: number): Phaser.Math.Vector2 {
-    const row = Math.floor(index / CLUMP_COLUMNS);
-    const col = index % CLUMP_COLUMNS;
-    const columnsInRow = Math.min(CLUMP_COLUMNS, total - row * CLUMP_COLUMNS);
-    const centeredCol = col - (columnsInRow - 1) / 2;
-    return new Phaser.Math.Vector2(
-      centeredCol * CLUMP_SPACING_X,
-      CLUMP_Y_OFFSET + row * CLUMP_SPACING_Y,
-    );
+  private clumpOffset(index: number): Phaser.Math.Vector2 {
+    let remaining = index;
+    for (let radius = 1; ; radius += 1) {
+      const cells = this.ringCells(radius);
+      if (remaining < cells.length) {
+        const cell = cells[remaining];
+        return new Phaser.Math.Vector2(
+          cell.x * CLUMP_SPACING_X,
+          cell.y * CLUMP_SPACING_Y,
+        );
+      }
+      remaining -= cells.length;
+    }
+  }
+
+  private ringCells(radius: number): Phaser.Math.Vector2[] {
+    const cells: Phaser.Math.Vector2[] = [];
+    for (let y = -radius; y <= radius; y += 1) {
+      for (let x = -radius; x <= radius; x += 1) {
+        if (x === 0 && y === 0) continue;
+        if (Math.max(Math.abs(x), Math.abs(y)) !== radius) continue;
+        cells.push(new Phaser.Math.Vector2(x, y));
+      }
+    }
+    return cells.sort((a, b) => {
+      const da = Math.abs(a.x) + Math.abs(a.y);
+      const db = Math.abs(b.x) + Math.abs(b.y);
+      if (da !== db) return da - db;
+      if (a.y !== b.y) return a.y - b.y;
+      return a.x - b.x;
+    });
   }
 
   /** 공격자(ax,ay)에서 대상(tx,ty) 방향으로 칼날이 호를 그리며 베는 슬래시 이펙트. */
