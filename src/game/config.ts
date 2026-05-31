@@ -122,11 +122,12 @@ export type ClassDef = {
   walkFrames: number;
   /** 공격 스프라이트시트 파일명 접미사 (예: "Attack01", "Attack"). */
   attackFile: string;
+  attackFrameRate?: number;
 };
 
 export const CLASS_DEFS: Record<string, ClassDef> = {
   sword: { folder: "Swordsman", idleFrames: 6, walkFrames: 8, attackFile: "Attack01" },
-  bow: { folder: "Archer", idleFrames: 6, walkFrames: 8, attackFile: "Attack01" },
+  bow: { folder: "Archer", idleFrames: 6, walkFrames: 8, attackFile: "Attack01", attackFrameRate: 36 },
   mage: { folder: "Wizard", idleFrames: 6, walkFrames: 8, attackFile: "Attack01" },
   cleric: { folder: "Priest", idleFrames: 6, walkFrames: 8, attackFile: "Attack" },
 };

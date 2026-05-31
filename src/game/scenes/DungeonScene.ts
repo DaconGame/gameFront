@@ -540,7 +540,7 @@ export class DungeonScene extends Phaser.Scene {
           start: 0,
           end: frameTotal - 1,
         }),
-        frameRate: 18,
+        frameRate: classDef.attackFrameRate ?? 18,
         repeat: 0,
       });
     }
