@@ -1,3 +1,5 @@
+import { MERC_COMBAT } from "../game/data/mercs";
+
 export type Mercenary = {
   id: string;
   label: string;
@@ -13,15 +15,17 @@ const ASSET_BASE = "/assets/Tiny RPG Character Asset Pack v1.03 -Full 20 Charact
 
 const idleSprite = (folder: string, file: string) => encodeURI(`${ASSET_BASE}/${folder}/${folder}/${file}-Idle.png`);
 
+const seconds = (ms: number) => `${(ms / 1000).toFixed(1)}s`;
+
 export const MERCS: Mercenary[] = [
   {
     id: "sword",
     label: "검사",
     role: "근접 범위 공격",
     stats: [
-      { k: "ATK", v: "15" },
-      { k: "사거리", v: "60px" },
-      { k: "쿨타임", v: "0.8s" },
+      { k: "ATK", v: String(MERC_COMBAT.sword.atk) },
+      { k: "사거리", v: `${MERC_COMBAT.sword.range}px` },
+      { k: "쿨타임", v: seconds(MERC_COMBAT.sword.cooldownMs) },
     ],
     glow: "var(--color-class-sword)",
     bobDelay: "0s",
@@ -33,9 +37,9 @@ export const MERCS: Mercenary[] = [
     label: "궁수",
     role: "원거리 투사체",
     stats: [
-      { k: "ATK", v: "10" },
-      { k: "사거리", v: "280px" },
-      { k: "쿨타임", v: "1.0s" },
+      { k: "ATK", v: String(MERC_COMBAT.bow.atk) },
+      { k: "사거리", v: `${MERC_COMBAT.bow.range}px` },
+      { k: "쿨타임", v: seconds(MERC_COMBAT.bow.cooldownMs) },
     ],
     glow: "var(--color-class-bow)",
     bobDelay: "0.25s",
@@ -47,9 +51,10 @@ export const MERCS: Mercenary[] = [
     label: "마법사",
     role: "광역 폭발",
     stats: [
-      { k: "ATK", v: "25" },
-      { k: "폭발반경", v: "80px" },
-      { k: "쿨타임", v: "2.0s" },
+      { k: "ATK", v: String(MERC_COMBAT.mage.atk) },
+      { k: "사거리", v: `${MERC_COMBAT.mage.range}px` },
+      { k: "폭발반경", v: `${MERC_COMBAT.mage.aoeRadius}px` },
+      { k: "쿨타임", v: seconds(MERC_COMBAT.mage.cooldownMs) },
     ],
     glow: "var(--color-class-mage)",
     bobDelay: "0.5s",
@@ -59,11 +64,11 @@ export const MERCS: Mercenary[] = [
   {
     id: "cleric",
     label: "성직자",
-    role: "아군 전체 회복",
+    role: "플레이어 회복",
     stats: [
-      { k: "회복", v: "+5 HP" },
-      { k: "대상", v: "팀 전체" },
-      { k: "주기", v: "5.0s" },
+      { k: "회복", v: `+${MERC_COMBAT.cleric.heal} HP` },
+      { k: "대상", v: "플레이어" },
+      { k: "주기", v: seconds(MERC_COMBAT.cleric.cooldownMs) },
     ],
     glow: "var(--color-class-cleric)",
     bobDelay: "0.75s",
