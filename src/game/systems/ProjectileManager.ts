@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { TEX } from "../config";
+import { EFFECT_ANIM, TEX } from "../config";
 import { Projectile } from "../entities/Projectile";
 import { Enemy } from "../entities/Enemy";
 import type { GameState } from "../state/GameState";
@@ -25,6 +25,7 @@ export class ProjectileManager {
     this.scene = scene;
     this.state = state;
     this.getEnemies = getEnemies;
+    this.ensureEffectAnimations();
     this.group = scene.physics.add.group({
       classType: Projectile,
       maxSize: MAX_PROJECTILES,
@@ -69,7 +70,7 @@ export class ProjectileManager {
     aoeRadius: number,
   ): void {
     const angle = Math.atan2(targetY - y, targetX - x);
-    const p = this.group.get(x, y, TEX.flameParticle) as Projectile | null;
+    const p = this.group.get(x, y, TEX.wizardAttackEffect) as Projectile | null;
     if (!p) return;
     p.fire({
       x,
@@ -78,13 +79,25 @@ export class ProjectileManager {
       speed: MAGIC_SPEED,
       damage,
       aoe: aoeRadius,
-      texture: TEX.flameParticle,
-      scale: 5,
-      tint: MAGIC_TINT,
+      texture: TEX.wizardAttackEffect,
+      scale: 2,
+      tint: 0xffffff,
       maxRange: 400,
-      rotateToDir: false,
-      bodyRadius: 4,
+      rotateToDir: true,
+      animKey: EFFECT_ANIM.wizardAttack,
+      bodyRadius: 8,
     });
+  }
+
+  private ensureEffectAnimations(): void {
+    if (this.scene.textures.exists(TEX.wizardAttackEffect) && !this.scene.anims.exists(EFFECT_ANIM.wizardAttack)) {
+      this.scene.anims.create({
+        key: EFFECT_ANIM.wizardAttack,
+        frames: this.scene.anims.generateFrameNumbers(TEX.wizardAttackEffect, { start: 0, end: 6 }),
+        frameRate: 14,
+        repeat: -1,
+      });
+    }
   }
 
   private onHit(p: Projectile, e: Enemy): void {

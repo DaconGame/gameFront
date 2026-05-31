@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { EFFECT_ANIM, TEX } from "../config";
 import { Mercenary } from "../entities/Mercenary";
 import { Enemy } from "../entities/Enemy";
 import { MERC_COMBAT, type MercCombat } from "../data/mercs";
@@ -38,6 +39,7 @@ export class MercManager {
     this.getEnemies = getEnemies;
     this.projectiles = projectiles;
     this.onPlayerAttack = onPlayerAttack;
+    this.ensureEffectAnimations();
 
     this.syncParty(state.party);
     state.on(GAME_EVENT.party, this.syncParty, this);
@@ -236,6 +238,25 @@ export class MercManager {
   }
 
   private healPulse(x: number, y: number): void {
+    if (this.scene.textures.exists(TEX.priestHealEffect) && this.scene.anims.exists(EFFECT_ANIM.priestHeal)) {
+      const effect = this.scene.add
+        .sprite(x, y - 30, TEX.priestHealEffect, 0)
+        .setDepth(23)
+        .setScale(2)
+        .setBlendMode(Phaser.BlendModes.ADD);
+
+      effect.play(EFFECT_ANIM.priestHeal, true);
+      this.scene.tweens.add({
+        targets: effect,
+        alpha: { from: 0.95, to: 0 },
+        scale: { from: 2, to: 2.2 },
+        duration: 420,
+        ease: "Quad.out",
+        onComplete: () => effect.destroy(),
+      });
+      return;
+    }
+
     const pulse = this.scene.add
       .circle(x, y, 64, 0x59c46b, 0.45)
       .setDepth(23)
@@ -248,5 +269,16 @@ export class MercManager {
       ease: "Quad.out",
       onComplete: () => pulse.destroy(),
     });
+  }
+
+  private ensureEffectAnimations(): void {
+    if (this.scene.textures.exists(TEX.priestHealEffect) && !this.scene.anims.exists(EFFECT_ANIM.priestHeal)) {
+      this.scene.anims.create({
+        key: EFFECT_ANIM.priestHeal,
+        frames: this.scene.anims.generateFrameNumbers(TEX.priestHealEffect, { start: 0, end: 3 }),
+        frameRate: 10,
+        repeat: 0,
+      });
+    }
   }
 }

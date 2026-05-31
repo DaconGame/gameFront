@@ -13,6 +13,7 @@ export type ProjectileConfig = {
   tint: number;
   maxRange: number;
   rotateToDir: boolean;
+  animKey?: string;
   /** 충돌 판정용 원형 반경(텍스처 px 기준, 스프라이트 스케일이 곱해짐). */
   bodyRadius: number;
 };
@@ -44,6 +45,8 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     this.setTint(cfg.tint);
     this.setDepth(PROJECTILE_DEPTH);
     this.setRotation(cfg.rotateToDir ? cfg.angle : 0);
+    this.anims.stop();
+    if (cfg.animKey && this.scene.anims.exists(cfg.animKey)) this.play(cfg.animKey, true);
     this.setActive(true);
     this.setVisible(true);
 

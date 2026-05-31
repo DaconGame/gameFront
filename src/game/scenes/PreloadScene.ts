@@ -87,6 +87,8 @@ export class PreloadScene extends Phaser.Scene {
 
     // 화살 투사체 (단일 이미지)
     this.load.image(TEX.arrow, PACK_PATH.arrow);
+    this.load.spritesheet(TEX.wizardAttackEffect, PACK_PATH.wizardAttackEffect, classFrame);
+    this.load.spritesheet(TEX.priestHealEffect, PACK_PATH.priestHealEffect, classFrame);
 
     this.load.on("loaderror", (file: Phaser.Loader.File) => {
       console.warn(`[asset] missing, using fallback if any: ${file.key}`);
