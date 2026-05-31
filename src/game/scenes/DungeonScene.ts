@@ -23,6 +23,7 @@ import { TutorialGuide } from "../hud/TutorialGuide";
 import {
   GAME_EVENT,
   GameState,
+  type BossStartPayload,
   type GameOverPayload,
   type UpgradeRequestPayload,
 } from "../state/GameState";
@@ -71,6 +72,7 @@ export class DungeonScene extends Phaser.Scene {
   private waves?: WaveManager;
   private projectiles?: ProjectileManager;
   private mercs?: MercManager;
+  private boss?: Enemy;
   private facing: Facing = "down";
   private usingClass = false;
   private attacking = false;
@@ -139,6 +141,8 @@ export class DungeonScene extends Phaser.Scene {
     this.overMenu.build();
     this.state.on(GAME_EVENT.over, this.onGameOver, this);
     this.state.on(GAME_EVENT.upgradeRequest, this.onUpgradeRequest, this);
+    this.state.on(GAME_EVENT.bossStart, this.onBossStart, this);
+    this.state.on(GAME_EVENT.bossEnd, this.onBossEnd, this);
 
     this.input.keyboard?.on("keydown-ESC", () => this.togglePause());
 
@@ -283,6 +287,8 @@ export class DungeonScene extends Phaser.Scene {
     this.waves?.update(delta);
     this.mercs?.update(delta);
     this.tutorial?.update(delta, moving);
+
+    if (this.boss?.targetable) this.hud?.updateBossHp(this.boss.hp);
   }
 
   private onUpgradeRequest(payload: UpgradeRequestPayload): void {
@@ -339,6 +345,61 @@ export class DungeonScene extends Phaser.Scene {
         this.state.increaseMaxHp(20);
         break;
     }
+  }
+
+  /** 보스 라운드 시작: 보스 스폰 + 배너 + 체력바. */
+  private onBossStart(payload: BossStartPayload): void {
+    if (this.gameOver) return;
+    const boss = this.waves?.spawnBoss(payload.bossId);
+    if (boss) {
+      boss.onDeath = () => this.state.defeatBoss();
+      this.boss = boss;
+      this.hud?.showBossBar(boss.def.label, boss.maxHp);
+      this.showBossBanner(boss.def.label);
+    }
+    this.cameras.main.shake(280, 0.008);
+  }
+
+  /** 보스 격파: 체력바를 내리고 참조를 정리한다. */
+  private onBossEnd(): void {
+    this.boss = undefined;
+    this.hud?.hideBossBar();
+  }
+
+  private showBossBanner(name: string): void {
+    const cx = GAME_WIDTH / 2;
+    const cy = GAME_HEIGHT / 2 - 60;
+    const banner = this.add.container(0, 0).setScrollFactor(0).setDepth(86);
+
+    const title = this.add
+      .text(cx, cy, "⚔  보스 라운드  ⚔", {
+        fontFamily: "Galmuri11, monospace",
+        fontSize: "44px",
+        color: "#ff5a3a",
+      })
+      .setOrigin(0.5)
+      .setShadow(0, 0, "#ff7a3a", 16, false, true);
+    const nameText = this.add
+      .text(cx, cy + 54, name, {
+        fontFamily: "Galmuri11, monospace",
+        fontSize: "26px",
+        color: "#ffd58a",
+      })
+      .setOrigin(0.5)
+      .setShadow(0, 2, "#000", 4, false, true);
+
+    banner.add([title, nameText]);
+    banner.setAlpha(0).setScale(0.7);
+
+    this.tweens.chain({
+      targets: banner,
+      tweens: [
+        { alpha: 1, scale: 1, duration: 320, ease: "Back.out" },
+        { alpha: 1, duration: 1400 },
+        { alpha: 0, scale: 1.1, duration: 380, ease: "Quad.in" },
+      ],
+      onComplete: () => banner.destroy(true),
+    });
   }
 
   private showUpgradeWait(payload: UpgradeRequestPayload): void {

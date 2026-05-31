@@ -16,8 +16,11 @@ const ENEMY_DEPTH = 15;
 export class Enemy extends Phaser.Physics.Arcade.Sprite {
   def!: EnemyDef;
   hp = 0;
+  maxHp = 0;
   speed = 0;
   damage = 0;
+  /** 사망 시 1회 호출되는 콜백(보스 격파 감지용). */
+  onDeath?: () => void;
   private dying = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number, texture: string) {
@@ -28,9 +31,11 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   spawn(def: EnemyDef, x: number, y: number): void {
     this.def = def;
     this.hp = def.hp;
+    this.maxHp = def.hp;
     this.speed = def.speed;
     this.damage = def.damage;
     this.dying = false;
+    this.onDeath = undefined;
 
     this.setTexture(enemyTex(def.id, "walk"));
     this.setPosition(x, y);
@@ -90,6 +95,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
 
   private die(): void {
     this.dying = true;
+    this.onDeath?.();
     this.off(`animationcomplete-${enemyAnimKey(this.def.id, "hurt")}`);
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setVelocity(0, 0);

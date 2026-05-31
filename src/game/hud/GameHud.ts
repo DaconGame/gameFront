@@ -40,6 +40,17 @@ export class GameHud {
   private mercBar!: Phaser.GameObjects.Container;
   private readonly slots: MercSlot[] = [];
 
+  private bossBar!: Phaser.GameObjects.Container;
+  private bossNameText!: Phaser.GameObjects.Text;
+  private bossHpFill!: Phaser.GameObjects.Graphics;
+  private bossMaxHp = 1;
+  private readonly bossBarGeom = {
+    w: 560,
+    h: 16,
+    x: (GAME_WIDTH - 560) / 2,
+    y: HUD.margin + HUD.panelHeight + 34,
+  };
+
   private readonly hpPanel = { x: HUD.margin, y: HUD.margin, w: 264, h: HUD.panelHeight };
   private readonly hpBar = { x: HUD.margin + 14, y: HUD.margin + 30, w: 236, h: 14 };
   private readonly statsPanel = {
@@ -62,6 +73,7 @@ export class GameHud {
   build(): void {
     this.buildTopBar();
     this.buildMercBar();
+    this.buildBossBar();
     this.buildControlsHint();
 
     // GameState 변경 이벤트만 구독해 화면을 갱신한다(상태와 표현의 분리).
@@ -282,7 +294,7 @@ export class GameHud {
       `${this.state.wave.toString().padStart(2, "0")} / ${HUD.totalWaves}`,
     );
 
-    const inWave = (this.state.elapsedSec % HUD.waveSec) / HUD.waveSec;
+    const inWave = Phaser.Math.Clamp(this.state.waveElapsedSec / HUD.waveSec, 0, 1);
     const x = this.waveProgress.getData("x") as number;
     const y = this.waveProgress.getData("y") as number;
     this.waveProgress.clear();
@@ -379,6 +391,68 @@ export class GameHud {
     const startX = (GAME_WIDTH - totalW) / 2 + box / 2;
     const y = GAME_HEIGHT - HUD.margin - box / 2 - 14;
     this.slots.forEach((slot, i) => slot.container.setPosition(startX + i * step, y));
+  }
+
+  private buildBossBar(): void {
+    const { w, h, x, y } = this.bossBarGeom;
+    this.bossBar = this.scene.add
+      .container(0, 0)
+      .setScrollFactor(0)
+      .setDepth(HUD.depth + 1)
+      .setVisible(false);
+
+    const panel = this.scene.add.graphics();
+    panel.fillStyle(COLOR.panelFill, 0.92);
+    panel.fillRoundedRect(x - 12, y - 30, w + 24, h + 44, 8);
+    panel.lineStyle(2, 0xc41e1e, 0.85);
+    panel.strokeRoundedRect(x - 12, y - 30, w + 24, h + 44, 8);
+
+    this.bossNameText = this.scene.add
+      .text(GAME_WIDTH / 2, y - 26, "", {
+        fontFamily: FONT,
+        fontSize: "16px",
+        color: "#ff7a6b",
+      })
+      .setOrigin(0.5, 0)
+      .setShadow(0, 1, "#000", 3, false, true);
+
+    const track = this.scene.add.graphics();
+    track.fillStyle(COLOR.hpTrack, 1);
+    track.fillRoundedRect(x, y, w, h, 4);
+
+    this.bossHpFill = this.scene.add.graphics();
+
+    this.bossBar.add([panel, this.bossNameText, track, this.bossHpFill]);
+    this.layer.add(this.bossBar);
+  }
+
+  /** 보스 라운드 시작 시 보스 체력바를 띄운다. */
+  showBossBar(label: string, maxHp: number): void {
+    this.bossMaxHp = Math.max(1, maxHp);
+    this.bossNameText.setText(`⚔ ${label}`);
+    this.bossBar.setVisible(true);
+    this.updateBossHp(maxHp);
+    this.scene.tweens.add({
+      targets: this.bossBar,
+      alpha: { from: 0, to: 1 },
+      duration: 300,
+      ease: "Quad.out",
+    });
+  }
+
+  /** 보스 현재 체력을 바에 반영한다. */
+  updateBossHp(hp: number): void {
+    const { w, h, x, y } = this.bossBarGeom;
+    const ratio = Phaser.Math.Clamp(hp / this.bossMaxHp, 0, 1);
+    this.bossHpFill.clear();
+    if (ratio > 0) {
+      this.bossHpFill.fillStyle(0xe0382f, 1);
+      this.bossHpFill.fillRoundedRect(x, y, Math.max(2, w * ratio), h, 4);
+    }
+  }
+
+  hideBossBar(): void {
+    this.bossBar.setVisible(false);
   }
 
   private buildControlsHint(): void {

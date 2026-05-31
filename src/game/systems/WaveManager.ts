@@ -9,6 +9,8 @@ const SPAWN_INTERVAL_MS = 260;
 const SPAWN_BATCH = 3;
 /** 카메라 밖(플레이어 기준)에서 스폰하기 위한 반경 */
 const SPAWN_RADIUS = 760;
+/** 보스 라운드 동안 동시에 유지할 잡몹 수 상한(보스 가독성 확보). */
+const BOSS_TRASH_CAP = 8;
 
 /**
  * 웨이브에 따라 적을 스폰하고 매 프레임 추적시키는 시스템.
@@ -56,13 +58,31 @@ export class WaveManager {
     if (this.spawnAccumMs < SPAWN_INTERVAL_MS) return;
     this.spawnAccumMs = 0;
 
-    const desired = desiredAliveCount(this.state.wave);
+    const baseDesired = desiredAliveCount(this.state.wave);
+    const desired = this.state.bossActive ? Math.min(baseDesired, BOSS_TRASH_CAP) : baseDesired;
     const alive = this.group.countActive(true);
     const deficit = desired - alive;
     if (deficit <= 0) return;
 
     const batch = Math.min(SPAWN_BATCH, deficit);
     for (let i = 0; i < batch; i++) this.spawnOne(player);
+  }
+
+  /** 보스를 화면 밖에서 1마리 스폰하고 그 인스턴스를 반환한다. */
+  spawnBoss(bossId: EnemyId): Enemy | null {
+    const player = this.getPlayer();
+    if (!player) return null;
+
+    const def = ENEMY_DEFS[bossId];
+    const angle = Math.PI / 2 + (Math.random() - 0.5) * 0.6;
+    const radius = 560;
+    const x = player.x + Math.cos(angle) * radius;
+    const y = player.y + Math.sin(angle) * radius;
+
+    const boss = this.group.get(x, y, enemyTex(bossId, "walk")) as Enemy | null;
+    if (!boss) return null;
+    boss.spawn(def, x, y);
+    return boss;
   }
 
   private spawnOne(player: Phaser.Physics.Arcade.Sprite): void {
