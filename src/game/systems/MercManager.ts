@@ -5,8 +5,10 @@ import { MERC_COMBAT, type MercCombat } from "../data/mercs";
 import { GAME_EVENT, type GameState } from "../state/GameState";
 import type { ProjectileManager } from "./ProjectileManager";
 
-const FORMATION_RADIUS = 78;
-const FORMATION_SPIN = 0.0004;
+const CLUMP_COLUMNS = 5;
+const CLUMP_SPACING_X = 18;
+const CLUMP_SPACING_Y = 10;
+const CLUMP_Y_OFFSET = 14;
 
 /**
  * 파티(GameState.party)에 맞춰 전투를 조율한다.
@@ -64,12 +66,10 @@ export class MercManager {
 
     this.runPlayerCombat(player, deltaMs);
 
-    const total = this.mercs.length;
-    const spin = this.scene.time.now * FORMATION_SPIN;
     this.mercs.forEach((merc, i) => {
-      const angle = (i / Math.max(1, total)) * Math.PI * 2 + spin;
-      const tx = player.x + Math.cos(angle) * FORMATION_RADIUS;
-      const ty = player.y + Math.sin(angle) * FORMATION_RADIUS;
+      const offset = this.clumpOffset(i, this.mercs.length);
+      const tx = player.x + offset.x;
+      const ty = player.y + offset.y;
       merc.steer(tx, ty);
       merc.tickCooldown(deltaMs);
       this.runCombat(merc, player);
@@ -169,6 +169,17 @@ export class MercManager {
     const body = (sprite as Phaser.GameObjects.Sprite & { body?: Phaser.Physics.Arcade.Body }).body;
     if (!body) return new Phaser.Math.Vector2(sprite.x, sprite.y);
     return new Phaser.Math.Vector2(body.center.x, body.center.y);
+  }
+
+  private clumpOffset(index: number, total: number): Phaser.Math.Vector2 {
+    const row = Math.floor(index / CLUMP_COLUMNS);
+    const col = index % CLUMP_COLUMNS;
+    const columnsInRow = Math.min(CLUMP_COLUMNS, total - row * CLUMP_COLUMNS);
+    const centeredCol = col - (columnsInRow - 1) / 2;
+    return new Phaser.Math.Vector2(
+      centeredCol * CLUMP_SPACING_X,
+      CLUMP_Y_OFFSET + row * CLUMP_SPACING_Y,
+    );
   }
 
   /** 공격자(ax,ay)에서 대상(tx,ty) 방향으로 칼날이 호를 그리며 베는 슬래시 이펙트. */
