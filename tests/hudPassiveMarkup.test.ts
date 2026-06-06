@@ -6,3 +6,5 @@ const mercBar = readFileSync("src/ui/game/MercBar.tsx", "utf8");
 
 assert.equal(/<button\b/.test(synergyPanel), false);
 assert.equal(/\stabIndex=/.test(mercBar), false);
+assert.equal(/<img\b/.test(mercBar), false);
+assert.equal(mercBar.includes("merc-sprite"), true);

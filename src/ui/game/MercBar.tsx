@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { GameHudSnapshot, HudPartyUnit } from "./hudTypes.ts";
 
 type Props = {
@@ -39,11 +40,17 @@ function MercSlot({ unit }: { unit: HudPartyUnit }) {
           className="absolute inset-1 rounded-[4px] opacity-25"
           style={{ background: `radial-gradient(circle at 50% 70%, ${unit.color} 0%, transparent 58%)` }}
         />
-        <img
-          src={unit.spriteUrl}
-          alt=""
-          className="relative h-[80px] w-[80px] object-contain"
-          style={{ filter: `drop-shadow(0 0 7px ${unit.color})` }}
+        <div
+          className="merc-sprite relative h-[80px] w-[80px]"
+          style={
+            {
+              "--merc-sprite": `url("${unit.spriteUrl}")`,
+              filter: `drop-shadow(0 0 7px ${unit.color})`,
+              transform: "scale(3)",
+              transformOrigin: "center",
+            } as CSSProperties
+          }
+          aria-hidden="true"
         />
         {unit.rank > 1 && (
           <span
