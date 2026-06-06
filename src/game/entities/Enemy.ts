@@ -11,6 +11,8 @@ import type { EnemyScaling } from "../data/waves";
 const NO_SCALING: EnemyScaling = { hp: 1, damage: 1, speed: 1 };
 
 const ENEMY_DEPTH = 15;
+/** 같은 적이 플레이어를 다시 때리기까지의 개별 쿨다운(ms). */
+const ENEMY_HIT_COOLDOWN_MS = 800;
 
 /**
  * 적 유닛. 객체 풀(Physics Group)에서 재사용되며, 활성 상태일 때
@@ -25,6 +27,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   /** 사망 시 1회 호출되는 콜백(보스 격파 감지용). */
   onDeath?: () => void;
   private dying = false;
+  /** 이 적이 마지막으로 플레이어를 때린 시각(scene.time.now). 개체별 공격 쿨다운에 사용. */
+  private lastPlayerHitAt = Number.NEGATIVE_INFINITY;
 
   constructor(scene: Phaser.Scene, x: number, y: number, texture: string) {
     super(scene, x, y, texture);
@@ -39,6 +43,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.damage = Math.max(1, Math.round(def.damage * scaling.damage));
     this.dying = false;
     this.onDeath = undefined;
+    this.lastPlayerHitAt = Number.NEGATIVE_INFINITY;
 
     this.setTexture(enemyTex(def.id, "walk"));
     this.setPosition(x, y);
@@ -72,6 +77,16 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   /** 공격 대상으로 삼을 수 있는 상태인지(활성 + 사망 진행 중 아님). */
   get targetable(): boolean {
     return this.active && !this.dying;
+  }
+
+  /** 개체별 쿨다운이 지나 플레이어를 다시 때릴 수 있는지. */
+  canHitPlayer(now: number): boolean {
+    return now - this.lastPlayerHitAt >= ENEMY_HIT_COOLDOWN_MS;
+  }
+
+  /** 플레이어를 때린 시각을 기록해 개체별 쿨다운을 건다. */
+  registerPlayerHit(now: number): void {
+    this.lastPlayerHitAt = now;
   }
 
   /** 피해를 입는다. 체력이 0 이하가 되면 사망 처리하고 true 를 반환. */
