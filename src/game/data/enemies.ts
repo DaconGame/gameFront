@@ -18,7 +18,7 @@ export type EnemyId =
   | "boss-werewolf"
   | "boss-werebear"
   | "boss-armoredskeleton";
-export type EnemyAnimKind = "idle" | "walk" | "hurt" | "death";
+export type EnemyAnimKind = "idle" | "walk" | "hurt" | "death" | "attack";
 
 export const ENEMY_FRAME = { width: 100, height: 100 } as const;
 
@@ -145,9 +145,19 @@ const ANIM_FILE: Record<EnemyAnimKind, string> = {
   walk: "Walk",
   hurt: "Hurt",
   death: "Death",
+  attack: "Attack01",
 };
 
 export function enemySheetPath(folder: string, kind: EnemyAnimKind, fileOverride?: string): string {
   const file = fileOverride ?? ANIM_FILE[kind];
   return encodeURI(`${CLASS_ASSET_BASE}/${folder}/${folder}/${folder}-${file}.png`);
+}
+
+/** 보스 공격 이펙트(Split Effects)용 텍스처 키/애니메이션 키/시트 경로. */
+export const enemyEffectTex = (id: EnemyId): string => `tex-enemyfx-${id}`;
+export const enemyEffectAnimKey = (id: EnemyId): string => `enemyfx-${id}`;
+export function enemyEffectSheetPath(folder: string): string {
+  return encodeURI(
+    `${CLASS_ASSET_BASE}/${folder}/${folder}(Split Effects)/${folder}-Attack01_Effect.png`,
+  );
 }

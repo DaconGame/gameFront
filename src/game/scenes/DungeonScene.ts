@@ -26,6 +26,7 @@ import {
   type UpgradeRequestPayload,
 } from "../state/GameState";
 import { Enemy, ensureEnemyAnimations } from "../entities/Enemy";
+import { enemyAnimKey, enemyEffectAnimKey, enemyEffectTex } from "../data/enemies";
 import { ensureMercAnimations } from "../entities/Mercenary";
 import { WaveManager } from "../systems/WaveManager";
 import { ProjectileManager } from "../systems/ProjectileManager";
@@ -59,6 +60,11 @@ const TORCH_ANIM_KEY = "torch-burn";
  * 둘러싸이면 여러 적이 번갈아 때려 실제로 더 위험해진다.
  */
 const HIT_GLOBAL_GAP_MS = 160;
+
+/** 보스 공격: 타격 판정 여유 거리(px) / 쿨타임(ms) / 모션 시작 후 타격 판정까지(ms). */
+const BOSS_STRIKE_MARGIN = 60;
+const BOSS_ATTACK_COOLDOWN_MS = 1500;
+const BOSS_ATTACK_WINDUP_MS = 320;
 
 type WasdKeys = {
   up: Phaser.Input.Keyboard.Key;
@@ -96,6 +102,8 @@ export class DungeonScene extends Phaser.Scene {
   private sfx!: SfxManager;
   private boss?: Enemy;
   private bossAura?: Phaser.GameObjects.Container;
+  private bossAttackCooldown = 0;
+  private bossAttacking = false;
   private bossHud: HudBoss | null = null;
   private lastHudEmitAt = 0;
   private facing: Facing = "down";
@@ -273,9 +281,15 @@ export class DungeonScene extends Phaser.Scene {
     _player: Phaser.GameObjects.GameObject,
     enemyObj: Phaser.GameObjects.GameObject,
   ): void {
-    if (this.paused || this.waitingForUpgrade || this.hurtCooldown > 0 || this.state.over) return;
+    if (this.paused || this.waitingForUpgrade || this.state.over) return;
     const enemy = enemyObj as Enemy;
     if (!enemy.targetable) return;
+    // 보스는 접촉 피해 대신, 닿으면 공격 모션을 발동해 타격한다.
+    if (enemy.def.boss) {
+      this.tryBossAttack(enemy);
+      return;
+    }
+    if (this.hurtCooldown > 0) return;
 
     // 적 개체별 쿨다운: 같은 적은 일정 시간 안에 다시 때리지 못한다.
     const now = this.time.now;
@@ -353,12 +367,88 @@ export class DungeonScene extends Phaser.Scene {
       this.bossHud = this.makeBossHud(this.boss.def.label, this.boss.hp, this.boss.maxHp);
       const c = this.boss.getCenter();
       this.bossAura?.setPosition(c.x, c.y);
+      this.updateBossAttack(delta);
     }
 
     if (this.time.now - this.lastHudEmitAt >= 100) {
       this.emitReactHud();
       this.lastHudEmitAt = this.time.now;
     }
+  }
+
+  /** 보스 공격 쿨다운만 매 프레임 줄인다. 실제 발동은 접촉(onEnemyContact) 시점에 한다. */
+  private updateBossAttack(deltaMs: number): void {
+    if (this.bossAttackCooldown > 0) this.bossAttackCooldown -= deltaMs;
+  }
+
+  /** 보스가 플레이어에 닿았을 때, 쿨다운/상태를 확인하고 공격 모션을 발동한다. */
+  private tryBossAttack(boss: Enemy): void {
+    if (this.bossAttacking || this.bossAttackCooldown > 0) return;
+    if (this.paused || this.waitingForUpgrade || this.state.over) return;
+    if (!boss.targetable) return;
+    this.performBossAttack(boss);
+  }
+
+  private performBossAttack(boss: Enemy): void {
+    this.bossAttacking = true;
+    this.bossAttackCooldown = BOSS_ATTACK_COOLDOWN_MS;
+    boss.frozen = true;
+    boss.setFlipX(this.player.x < boss.x);
+
+    const attackKey = enemyAnimKey(boss.def.id, "attack");
+    // 종료는 타이머로 보장한다. (피격 시 hurt 모션이 attack을 덮어쓰면
+    //  animationcomplete 이벤트가 오지 않아 보스가 영구히 고착되기 때문)
+    let duration = BOSS_ATTACK_WINDUP_MS + 220;
+    if (this.anims.exists(attackKey)) {
+      boss.play(attackKey, true);
+      this.playBossAttackEffect(boss);
+      duration = this.anims.get(attackKey)?.duration || duration;
+    }
+
+    this.time.delayedCall(BOSS_ATTACK_WINDUP_MS, () => this.bossStrike(boss));
+    this.time.delayedCall(duration, () => this.endBossAttack(boss));
+  }
+
+  /** 보스 공격 모션에 맞춰 보스 위치에 전용 공격 이펙트(Split Effects)를 겹쳐 재생한다. */
+  private playBossAttackEffect(boss: Enemy): void {
+    const fxTex = enemyEffectTex(boss.def.id);
+    const fxKey = enemyEffectAnimKey(boss.def.id);
+    if (!this.textures.exists(fxTex) || !this.anims.exists(fxKey)) return;
+
+    const fx = this.add
+      .sprite(boss.x, boss.y, fxTex, 0)
+      .setScale(boss.def.scale)
+      .setOrigin(0.5, boss.def.feetRatio)
+      .setFlipX(boss.flipX)
+      .setDepth(boss.depth + 1);
+    fx.play(fxKey, true);
+    fx.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => fx.destroy());
+  }
+
+  /** 보스 타격 판정: 여전히 보스 바디 근처면 피해 + 임팩트 연출. */
+  private bossStrike(boss: Enemy): void {
+    if (!boss.targetable || this.state.over || this.paused) return;
+    if (!this.bossInStrikeRange(boss)) return;
+
+    this.state.damagePlayer(boss.damage);
+    this.sfx.play("playerHurt");
+    if (!this.state.over) this.flashPlayerHurt();
+    this.cameras.main.shake(170, 0.007);
+  }
+
+  /** 보스 바디 중심에서 플레이어까지 거리가 바디 크기+여유 안인지(거대 스프라이트 대응). */
+  private bossInStrikeRange(boss: Enemy): boolean {
+    const b = boss.body as Phaser.Physics.Arcade.Body;
+    const p = this.player.body as Phaser.Physics.Arcade.Body;
+    const reach = Math.max(b.halfWidth, b.halfHeight) + BOSS_STRIKE_MARGIN;
+    return Phaser.Math.Distance.Between(b.center.x, b.center.y, p.center.x, p.center.y) <= reach;
+  }
+
+  private endBossAttack(boss: Enemy): void {
+    this.bossAttacking = false;
+    if (!boss.targetable) return;
+    boss.frozen = false;
+    boss.play(enemyAnimKey(boss.def.id, "walk"), true);
   }
 
   private onUpgradeRequest(payload: UpgradeRequestPayload): void {
@@ -458,6 +548,8 @@ export class DungeonScene extends Phaser.Scene {
   private onBossEnd(): void {
     this.clearBossVisuals();
     this.boss = undefined;
+    this.bossAttacking = false;
+    this.bossAttackCooldown = 0;
     this.bossHud = null;
     this.hud?.hideBossBar();
     this.emitReactHud();

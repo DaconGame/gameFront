@@ -3,7 +3,10 @@ import {
   ENEMY_FRAME,
   ENEMY_IDS,
   enemyAnimKey,
+  enemyEffectAnimKey,
+  enemyEffectTex,
   enemyTex,
+  type EnemyAnimKind,
   type EnemyDef,
 } from "../data/enemies";
 import type { EnemyScaling } from "../data/waves";
@@ -26,6 +29,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   damage = 0;
   /** 사망 시 1회 호출되는 콜백(보스 격파 감지용). */
   onDeath?: () => void;
+  /** true 면 추적 이동을 멈춘다(보스 공격 모션 중 제자리 고정용). */
+  frozen = false;
   private dying = false;
   /** 이 적이 마지막으로 플레이어를 때린 시각(scene.time.now). 개체별 공격 쿨다운에 사용. */
   private lastPlayerHitAt = Number.NEGATIVE_INFINITY;
@@ -42,6 +47,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.speed = def.speed * scaling.speed;
     this.damage = Math.max(1, Math.round(def.damage * scaling.damage));
     this.dying = false;
+    this.frozen = false;
     this.onDeath = undefined;
     this.lastPlayerHitAt = Number.NEGATIVE_INFINITY;
 
@@ -68,6 +74,11 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   /** 플레이어 좌표를 향해 이동. WaveManager 가 매 프레임 호출한다. */
   chase(targetX: number, targetY: number): void {
     if (!this.active || this.dying) return;
+    if (this.frozen) {
+      (this.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+      this.setFlipX(targetX < this.x);
+      return;
+    }
     const body = this.body as Phaser.Physics.Arcade.Body;
     const angle = Math.atan2(targetY - this.y, targetX - this.x);
     body.setVelocity(Math.cos(angle) * this.speed, Math.sin(angle) * this.speed);
@@ -141,11 +152,12 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
  * 텍스처 실제 너비에서 프레임 수를 동적으로 계산한다.
  */
 export function ensureEnemyAnimations(scene: Phaser.Scene): void {
-  const kinds: Array<"idle" | "walk" | "hurt" | "death"> = ["idle", "walk", "hurt", "death"];
+  const kinds: EnemyAnimKind[] = ["idle", "walk", "hurt", "death", "attack"];
   for (const id of ENEMY_IDS) {
     for (const kind of kinds) {
       const tex = enemyTex(id, kind);
       const key = enemyAnimKey(id, kind);
+      // attack 텍스처는 보스만 로드되므로, 없으면 자동으로 건너뛴다.
       if (!scene.textures.exists(tex) || scene.anims.exists(key)) continue;
 
       const source = scene.textures.get(tex).getSourceImage() as HTMLImageElement;
@@ -153,8 +165,22 @@ export function ensureEnemyAnimations(scene: Phaser.Scene): void {
       scene.anims.create({
         key,
         frames: scene.anims.generateFrameNumbers(tex, { start: 0, end: frameCount - 1 }),
-        frameRate: kind === "walk" ? 10 : 8,
+        frameRate: kind === "walk" ? 10 : kind === "attack" ? 12 : 8,
         repeat: kind === "idle" || kind === "walk" ? -1 : 0,
+      });
+    }
+
+    // 보스 공격 이펙트(텍스처가 로드된 보스만 생성).
+    const fxTex = enemyEffectTex(id);
+    const fxKey = enemyEffectAnimKey(id);
+    if (scene.textures.exists(fxTex) && !scene.anims.exists(fxKey)) {
+      const source = scene.textures.get(fxTex).getSourceImage() as HTMLImageElement;
+      const frameCount = Math.max(1, Math.floor(source.width / ENEMY_FRAME.width));
+      scene.anims.create({
+        key: fxKey,
+        frames: scene.anims.generateFrameNumbers(fxTex, { start: 0, end: frameCount - 1 }),
+        frameRate: 12,
+        repeat: 0,
       });
     }
   }

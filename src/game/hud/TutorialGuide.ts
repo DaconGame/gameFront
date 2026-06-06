@@ -5,7 +5,7 @@ import type { GameHud } from "./GameHud";
 const FONT = "Galmuri11, monospace";
 const UPGRADE_SELECTED_EVENT = "game:upgrade-selected";
 
-type RegionKey = "hp" | "timer" | "wave" | "mercBar";
+type RegionKey = "hp" | "timer" | "wave" | "mercBar" | "synergy";
 
 /** 한 단계의 정의. gate 는 다음 단계로 넘어가는 조건을 의미한다. */
 type Step = {
@@ -93,7 +93,21 @@ export class TutorialGuide {
         gate: "next",
       },
       {
-        text: "웨이브가 끝날 때마다 카드 3장 중 1장을 골라 용병단을 강화합니다. 한 장 골라보세요!",
+        text: "같은 직업 용병을 또 얻으면 합쳐져 성급이 오릅니다. 슬롯 오른쪽 위에 2성·3성 표시가 붙고 훨씬 강해져요.",
+        regions: ["mercBar"],
+        gate: "next",
+      },
+      {
+        text: "왼쪽은 시너지 패널입니다. 서로 다른 직업을 조합하면 효과가 발동돼요. 마우스를 올리면 효과 설명도 볼 수 있습니다.",
+        regions: ["synergy"],
+        gate: "next",
+      },
+      {
+        text: "웨이브가 끝나면 카드를 골라 용병단을 강화합니다. 마음에 안 들면 보유 포인트 100을 써서 [새로고침]으로 다시 뽑을 수 있어요.",
+        gate: "next",
+      },
+      {
+        text: "카드 1장을 골라 다음 웨이브를 시작해 보세요!",
         gate: "card",
         onEnter: () => this.cb.forceCard(),
       },
