@@ -1,7 +1,13 @@
-/** 게임 ↔ React 셸 사이에서 쓰는 커스텀 window 이벤트 타입 보강. */
+import type { GameHudSnapshot, HudResult } from "../ui/game/hudTypes.ts";
+
 declare global {
   interface WindowEventMap {
     "game:exit": CustomEvent;
+    "game:hud-update": CustomEvent<GameHudSnapshot>;
+    "game:pause-change": CustomEvent<boolean>;
+    "game:result-change": CustomEvent<HudResult | null>;
+    "game:resume-request": CustomEvent;
+    "game:restart-request": CustomEvent;
     "game:upgrade-request": CustomEvent<{
       completedWave: number;
       nextWave: number;
@@ -15,4 +21,4 @@ declare global {
   }
 }
 
-export { };
+export {};
