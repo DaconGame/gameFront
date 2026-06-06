@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { GameHudSnapshot } from "./hudTypes.ts";
+import { PixelIcon } from "./HudIcons.tsx";
 
 type Props = {
   snapshot: GameHudSnapshot;
@@ -23,7 +24,10 @@ export function TopHud({ snapshot }: Props) {
     <>
       <Panel className="absolute left-4 top-4 h-14 w-[264px] border-blood-red/55 px-3 py-2">
         <div className="flex items-center justify-between text-[13px]">
-          <span>체력</span>
+          <span className="flex items-center gap-1.5">
+            <PixelIcon name="heart" className="h-3 w-3 text-blood-red" />
+            체력
+          </span>
           <span className="font-pixel-en text-[10px] text-ash-grey">
             {Math.ceil(snapshot.hp.current)} / {snapshot.hp.max}
           </span>
@@ -37,19 +41,29 @@ export function TopHud({ snapshot }: Props) {
       </Panel>
 
       <Panel className="absolute left-4 top-[88px] flex h-10 w-[264px] items-center justify-between border-torch-core/45 px-3 text-[13px]">
-        <span>처치 {snapshot.stats.kills}</span>
-        <span className="text-torch-core">점수 {snapshot.stats.score}</span>
+        <span className="flex items-center gap-1.5">
+          <PixelIcon name="sword" className="h-3 w-3 text-bone-white/80" />
+          처치 {snapshot.stats.kills}
+        </span>
+        <span className="flex items-center gap-1.5 text-torch-core">
+          <PixelIcon name="star" className="h-3 w-3" />
+          점수 {snapshot.stats.score}
+        </span>
       </Panel>
 
       <Panel className="absolute left-1/2 top-4 flex h-14 w-[156px] -translate-x-1/2 items-center justify-center border-torch-core/60 shadow-[inset_1px_1px_0_rgba(236,226,200,0.1),0_0_0_2px_rgba(0,0,0,0.58),0_0_24px_rgba(255,122,58,0.2)]">
-        <span className="font-pixel-en text-sm text-torch-core drop-shadow-[0_0_8px_rgba(255,122,58,0.75)]">
+        <span className="flex items-center gap-1.5 font-pixel-en text-sm text-torch-core drop-shadow-[0_0_8px_rgba(255,122,58,0.75)]">
+          <PixelIcon name="clock" className="h-3.5 w-3.5" />
           {snapshot.time.label}
         </span>
       </Panel>
 
       <Panel className="absolute right-4 top-4 h-14 w-[156px] border-rune-cyan/55 px-3 py-2">
         <div className="flex items-start justify-between">
-          <span className="text-[13px]">웨이브</span>
+          <span className="flex items-center gap-1.5 text-[13px]">
+            <PixelIcon name="wave" className="h-3 w-3 text-rune-cyan" />
+            웨이브
+          </span>
           <span className="font-pixel-en text-[10px] text-rune-cyan">{snapshot.wave.label}</span>
         </div>
         <div className="mt-2 h-1.5 rounded-[3px] bg-dungeon-mid shadow-[inset_0_1px_4px_rgba(0,0,0,0.65)]">
