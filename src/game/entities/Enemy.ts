@@ -10,7 +10,6 @@ import {
   type EnemyDef,
 } from "../data/enemies";
 import type { EnemyScaling } from "../data/waves";
-import { spawnFloatingText } from "../systems/FloatingText";
 
 const NO_SCALING: EnemyScaling = { hp: 1, damage: 1, speed: 1 };
 
@@ -105,15 +104,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   takeDamage(amount: number): boolean {
     if (!this.targetable) return false;
     this.hp -= amount;
-    const headY = this.y - this.def.feetRatio * this.displayHeight;
-    spawnFloatingText(this.scene, this.x, headY, `${Math.round(amount)}`);
     if (this.hp <= 0) {
-      spawnFloatingText(this.scene, this.x, headY - 14, `+${this.def.score}`, {
-        color: "#ffd58a",
-        fontSize: 14,
-        rise: 46,
-        duration: 800,
-      });
       this.die();
       return true;
     }
