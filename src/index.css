@@ -242,6 +242,69 @@ canvas {
   transform-origin: center;
 }
 
+/* ─── Modal entrance (backdrop fade + box pop-in) ───────────────────────── */
+
+@keyframes modal-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-backdrop {
+  animation: modal-backdrop-in 0.2s ease-out;
+}
+
+.modal-pop {
+  animation: modal-pop-in 0.32s cubic-bezier(0.2, 0.8, 0.3, 1.1) both;
+}
+
+@keyframes emblem-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.emblem-in {
+  animation: emblem-rise-in 0.45s cubic-bezier(0.2, 0.8, 0.3, 1.2) 0.1s both;
+}
+
+@keyframes victory-glow {
+  0%,
+  100% {
+    text-shadow:
+      0 0 14px rgba(255, 213, 138, 0.6),
+      0 0 34px rgba(255, 122, 58, 0.4);
+  }
+  50% {
+    text-shadow:
+      0 0 22px rgba(255, 233, 176, 0.9),
+      0 0 52px rgba(255, 122, 58, 0.65);
+  }
+}
+
+.victory-glow {
+  animation: victory-glow 2.4s ease-in-out infinite;
+}
+
 /* ─── Upgrade card (rarity tier coloring) ───────────────────────────────── */
 
 .upgrade-card {

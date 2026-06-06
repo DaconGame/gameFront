@@ -1,6 +1,13 @@
 import type { CSSProperties } from "react";
 
-export type IconName = "heart" | "sword" | "star" | "clock" | "wave";
+export type IconName =
+  | "heart"
+  | "sword"
+  | "star"
+  | "clock"
+  | "wave"
+  | "skull"
+  | "pause";
 
 const GRIDS: Record<IconName, string[]> = {
   heart: ["0110110", "1111111", "1111111", "0111110", "0011100", "0001000"],
@@ -8,6 +15,16 @@ const GRIDS: Record<IconName, string[]> = {
   star: ["0001000", "0001000", "0011100", "1111111", "0011100", "0001000", "0001000"],
   clock: ["0111110", "1000001", "1001001", "1001101", "1000001", "0111110"],
   wave: ["1111100", "1000110", "1000110", "1111100", "1000000", "1000000", "1000000"],
+  skull: [
+    "0111110",
+    "1111111",
+    "1101011",
+    "1111111",
+    "1111111",
+    "0111110",
+    "0101010",
+  ],
+  pause: ["110011", "110011", "110011", "110011", "110011", "110011"],
 };
 
 type Props = {
