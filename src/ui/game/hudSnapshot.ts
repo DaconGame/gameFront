@@ -17,6 +17,15 @@ const CLASS_LABELS: Record<string, string> = {
   cleric: "성직자",
 };
 
+const CLASS_SPRITES: Record<string, { folder: string; file: string }> = {
+  sword: { folder: "Swordsman", file: "Swordsman" },
+  bow: { folder: "Archer", file: "Archer" },
+  mage: { folder: "Wizard", file: "Wizard" },
+  cleric: { folder: "Priest", file: "Priest" },
+};
+
+const ASSET_BASE = "/assets/Tiny RPG Character Asset Pack v1.03 -Full 20 Characters/Characters(100x100)";
+
 const SYNERGY_TEXT: Record<string, { name: string; effect: string }> = {
   "cover-fire": { name: "엄호 사격", effect: "궁수 공격력 +15%" },
   "rally-blast": { name: "집결 폭발", effect: "마법사 폭발 반경 +25" },
@@ -52,6 +61,12 @@ function classColor(id: string): string {
   return hexColor(MERC_HUD[id]?.color ?? 0xffffff);
 }
 
+function spriteUrl(id: string): string {
+  const sprite = CLASS_SPRITES[id];
+  if (!sprite) return "";
+  return encodeURI(`${ASSET_BASE}/${sprite.folder}/${sprite.folder}/${sprite.file}-Idle.png`);
+}
+
 function partyUnitSnapshot(unit: HudStateSource["party"][number]): HudPartyUnit | null {
   const combatBase = MERC_COMBAT[unit.id];
   if (!combatBase) return null;
@@ -74,6 +89,7 @@ function partyUnitSnapshot(unit: HudStateSource["party"][number]): HudPartyUnit 
     id: unit.id,
     label,
     color: classColor(unit.id),
+    spriteUrl: spriteUrl(unit.id),
     rank,
     badge: RANK_BADGE[rank],
     isPlayer: unit.isPlayer === true,

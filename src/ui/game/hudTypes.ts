@@ -19,6 +19,7 @@ export type HudPartyUnit = {
   id: string;
   label: string;
   color: string;
+  spriteUrl: string;
   rank: UnitRank;
   badge: string;
   isPlayer: boolean;

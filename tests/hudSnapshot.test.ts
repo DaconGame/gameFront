@@ -26,6 +26,7 @@ assert.equal(snapshot.hp.ratio, 76 / 120);
 const bowSlot = snapshot.party.find((unit) => unit.id === "bow");
 assert.ok(bowSlot);
 assert.equal(bowSlot.badge, "II");
+assert.ok(bowSlot.spriteUrl.endsWith("/Archer/Archer/Archer-Idle.png"));
 assert.deepEqual(bowSlot.tooltip, ["궁수 2등급(II)", "공격 19", "쿨타임 0.68s", "사거리 340px"]);
 
 const active = snapshot.synergies.find((row) => row.key === "cover-fire");
