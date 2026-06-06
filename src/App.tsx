@@ -4,6 +4,7 @@ import { TitleScreen } from "./ui/TitleScreen.tsx";
 import { CharacterSelectModal } from "./ui/CharacterSelectModal.tsx";
 import { UpgradeModal } from "./ui/UpgradeModal.tsx";
 import { DevModePanel } from "./ui/DevModePanel.tsx";
+import { GameOverlay } from "./ui/game/GameOverlay.tsx";
 import { PhaserGame } from "./game/PhaserGame.tsx";
 import { DEV_MODE } from "./game/config.ts";
 
@@ -34,6 +35,7 @@ function GamePage() {
     return (
       <>
         <PhaserGame classId="sword" tutorial />
+        <GameOverlay />
         <UpgradeModal />
       </>
     );
@@ -75,6 +77,7 @@ function GamePage() {
   return (
     <>
       <PhaserGame classId={selectedClass} devMode={devMode} devWaveSec={devWaveSec} />
+      <GameOverlay />
       <UpgradeModal />
       {devMode && <DevModePanel initialWaveSec={devWaveSec ?? DEV_MODE.defaultWaveSec} />}
     </>
