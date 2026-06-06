@@ -7,7 +7,7 @@ type Props = {
 function Tooltip({ unit }: { unit: HudPartyUnit }) {
   return (
     <div
-      className="pointer-events-none absolute bottom-[calc(100%+12px)] left-1/2 z-20 min-w-48 -translate-x-1/2 translate-y-1 rounded-[6px] border-2 bg-dungeon-deepest/95 px-3 py-2 text-left opacity-0 shadow-[inset_1px_1px_0_rgba(236,226,200,0.12),0_0_0_2px_rgba(0,0,0,0.65),0_8px_26px_rgba(0,0,0,0.72)] transition group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
+      className="pointer-events-none absolute bottom-[calc(100%+12px)] left-1/2 z-20 min-w-48 -translate-x-1/2 translate-y-1 rounded-[6px] border-2 bg-dungeon-deepest/95 px-3 py-2 text-left opacity-0 shadow-[inset_1px_1px_0_rgba(236,226,200,0.12),0_0_0_2px_rgba(0,0,0,0.65),0_8px_26px_rgba(0,0,0,0.72)] transition group-hover:translate-y-0 group-hover:opacity-100"
       role="tooltip"
       style={{ borderColor: unit.color }}
     >
@@ -27,8 +27,7 @@ function Tooltip({ unit }: { unit: HudPartyUnit }) {
 function MercSlot({ unit }: { unit: HudPartyUnit }) {
   return (
     <div
-      className="group relative flex h-[86px] w-[64px] flex-col items-center justify-end outline-none"
-      tabIndex={0}
+      className="group relative flex h-[86px] w-[64px] flex-col items-center justify-end"
       aria-label={`${unit.label} ${unit.badge}`}
     >
       <Tooltip unit={unit} />

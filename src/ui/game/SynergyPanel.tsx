@@ -6,7 +6,7 @@ type Props = {
 
 function SynergyTooltip({ row }: { row: HudSynergyRow }) {
   return (
-    <div className="pointer-events-none absolute left-[calc(100%+12px)] top-1 z-20 w-64 translate-x-1 rounded-[6px] border-2 border-rune-violet/80 bg-dungeon-deepest/95 px-3 py-2 text-left opacity-0 shadow-[inset_1px_1px_0_rgba(236,226,200,0.12),0_0_0_2px_rgba(0,0,0,0.65),0_10px_28px_rgba(0,0,0,0.75)] transition group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100">
+    <div className="pointer-events-none absolute left-[calc(100%+12px)] top-1 z-20 w-64 translate-x-1 rounded-[6px] border-2 border-rune-violet/80 bg-dungeon-deepest/95 px-3 py-2 text-left opacity-0 shadow-[inset_1px_1px_0_rgba(236,226,200,0.12),0_0_0_2px_rgba(0,0,0,0.65),0_10px_28px_rgba(0,0,0,0.75)] transition group-hover:translate-x-0 group-hover:opacity-100">
       <span className="absolute -left-2 top-4 h-3 w-3 rotate-45 border-b-2 border-l-2 border-rune-violet/80 bg-dungeon-deepest" />
       {row.tooltip.map((line, index) => (
         <div
@@ -26,9 +26,8 @@ function SynergyRow({ row }: { row: HudSynergyRow }) {
     : "border-bone-white/10 bg-black/20";
 
   return (
-    <button
-      type="button"
-      className={`group relative grid h-[46px] w-full grid-cols-[34px_1fr_42px] items-center gap-2 rounded-[4px] border px-2 text-left outline-none transition hover:border-rune-violet/60 hover:bg-rune-violet/12 focus-visible:border-torch-core ${stateClass}`}
+    <div
+      className={`group relative grid h-[46px] w-full grid-cols-[34px_1fr_42px] items-center gap-2 rounded-[4px] border px-2 text-left transition hover:border-rune-violet/60 hover:bg-rune-violet/12 ${stateClass}`}
       aria-label={`${row.name} ${row.progressLabel}`}
     >
       <div className="flex flex-wrap gap-1">
@@ -52,7 +51,7 @@ function SynergyRow({ row }: { row: HudSynergyRow }) {
         {row.progressLabel}
       </span>
       <SynergyTooltip row={row} />
-    </button>
+    </div>
   );
 }
 
