@@ -45,6 +45,7 @@ import type { HudBoss, HudResult } from "../../ui/game/hudTypes";
 const GAME_EXIT_EVENT = "game:exit";
 const UPGRADE_REQUEST_EVENT = "game:upgrade-request";
 const UPGRADE_SELECTED_EVENT = "game:upgrade-selected";
+const UPGRADE_REROLL_EVENT = "game:upgrade-reroll";
 const DEV_WAVE_SEC_EVENT = "game:dev-wave-sec-change";
 const TORCH_ANIM_KEY = "torch-burn";
 /**
@@ -79,6 +80,7 @@ export class DungeonScene extends Phaser.Scene {
   private gameOver = false;
   private waitingForUpgrade = false;
   private upgradeSelectedHandler?: EventListener;
+  private upgradeRerollHandler?: EventListener;
   private devWaveSecHandler?: EventListener;
   private resumeRequestHandler?: EventListener;
   private restartRequestHandler?: EventListener;
@@ -167,12 +169,22 @@ export class DungeonScene extends Phaser.Scene {
       this.completeUpgradeWait(detail?.upgradeId);
     };
     window.addEventListener(UPGRADE_SELECTED_EVENT, this.upgradeSelectedHandler);
+
+    this.upgradeRerollHandler = (event) => {
+      if (!this.waitingForUpgrade || this.gameOver) return;
+      const cost = (event as CustomEvent<{ cost?: number }>).detail?.cost ?? 0;
+      const ok = this.state.spendScore(cost);
+      this.sfx.play(ok ? "uiConfirm" : "uiDenied");
+    };
+    window.addEventListener(UPGRADE_REROLL_EVENT, this.upgradeRerollHandler);
+
     this.resumeRequestHandler = () => this.setPaused(false);
     this.restartRequestHandler = () => {
       if (this.gameOver) this.scene.restart();
     };
     window.addEventListener(GAME_RESUME_REQUEST_EVENT, this.resumeRequestHandler);
     window.addEventListener(GAME_RESTART_REQUEST_EVENT, this.restartRequestHandler);
+
     if (this.registry.get("devMode") === true) {
       this.devWaveSecHandler = (event) => {
         const detail = (event as CustomEvent<{ waveSec?: number }>).detail;
@@ -360,6 +372,7 @@ export class DungeonScene extends Phaser.Scene {
           ...payload,
           blockedHireIds: this.state.blockedHireIds,
           mercFull: this.state.mercFull,
+          score: this.state.score,
         },
       }),
     );
@@ -526,6 +539,10 @@ export class DungeonScene extends Phaser.Scene {
     if (this.upgradeSelectedHandler) {
       window.removeEventListener(UPGRADE_SELECTED_EVENT, this.upgradeSelectedHandler);
       this.upgradeSelectedHandler = undefined;
+    }
+    if (this.upgradeRerollHandler) {
+      window.removeEventListener(UPGRADE_REROLL_EVENT, this.upgradeRerollHandler);
+      this.upgradeRerollHandler = undefined;
     }
     if (this.devWaveSecHandler) {
       window.removeEventListener(DEV_WAVE_SEC_EVENT, this.devWaveSecHandler);
