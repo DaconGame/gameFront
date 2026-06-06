@@ -40,7 +40,13 @@ const UPGRADE_REQUEST_EVENT = "game:upgrade-request";
 const UPGRADE_SELECTED_EVENT = "game:upgrade-selected";
 const DEV_WAVE_SEC_EVENT = "game:dev-wave-sec-change";
 const TORCH_ANIM_KEY = "torch-burn";
-const HURT_IFRAME_MS = 650;
+/**
+ * 피격 사이의 짧은 전역 최소 간격(ms).
+ * 무적은 적 개체별 쿨다운(Enemy.canHitPlayer)으로 관리하고,
+ * 이 값은 한 프레임에 다수의 적이 동시에 닿아 즉사하는 것만 방지한다.
+ * 둘러싸이면 여러 적이 번갈아 때려 실제로 더 위험해진다.
+ */
+const HIT_GLOBAL_GAP_MS = 160;
 
 type WasdKeys = {
   up: Phaser.Input.Keyboard.Key;
@@ -236,7 +242,7 @@ export class DungeonScene extends Phaser.Scene {
     }
   }
 
-  /** 적과 겹칠 때 호출. 무적 시간이 끝났을 때만 해당 적의 피해량만큼 체력을 깎는다. */
+  /** 적과 겹칠 때 호출. 전역 최소 간격 + 적 개체별 쿨다운을 모두 통과하면 그 적의 피해량만큼 깎는다. */
   private onEnemyContact(
     _player: Phaser.GameObjects.GameObject,
     enemyObj: Phaser.GameObjects.GameObject,
@@ -245,7 +251,12 @@ export class DungeonScene extends Phaser.Scene {
     const enemy = enemyObj as Enemy;
     if (!enemy.targetable) return;
 
-    this.hurtCooldown = HURT_IFRAME_MS;
+    // 적 개체별 쿨다운: 같은 적은 일정 시간 안에 다시 때리지 못한다.
+    const now = this.time.now;
+    if (!enemy.canHitPlayer(now)) return;
+    enemy.registerPlayerHit(now);
+
+    this.hurtCooldown = HIT_GLOBAL_GAP_MS;
     this.state.damagePlayer(enemy.damage);
     this.sfx.play("playerHurt");
     if (!this.state.over) this.flashPlayerHurt();
