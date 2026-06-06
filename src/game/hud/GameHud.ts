@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { GAME_HEIGHT, GAME_WIDTH, HUD, MERC_HUD } from "../config";
 import { GAME_EVENT, type GameState } from "../state/GameState";
+import { SYNERGY_DEFS, activeTier, nextTier } from "../data/synergies";
 
 const FONT = "Galmuri11, monospace";
 
@@ -40,6 +41,15 @@ export class GameHud {
   private mercBar!: Phaser.GameObjects.Container;
   private readonly slots: MercSlot[] = [];
 
+  private synergyPanel!: Phaser.GameObjects.Container;
+  private readonly synergyGeom = {
+    x: HUD.margin,
+    y: HUD.margin + HUD.panelHeight + 8 + 42 + 12,
+    w: 230,
+    rowH: 52,
+    headerH: 26,
+  };
+
   private bossBar!: Phaser.GameObjects.Container;
   private bossNameText!: Phaser.GameObjects.Text;
   private bossHpFill!: Phaser.GameObjects.Graphics;
@@ -73,6 +83,7 @@ export class GameHud {
   build(): void {
     this.buildTopBar();
     this.buildMercBar();
+    this.buildSynergyPanel();
     this.buildBossBar();
     this.buildControlsHint();
 
@@ -150,6 +161,7 @@ export class GameHud {
       slot.badge.setVisible(count > 1);
     }
     this.layoutMercBar();
+    this.refreshSynergy(counts);
   }
 
   private buildTopBar(): void {
@@ -382,6 +394,87 @@ export class GameHud {
 
     this.mercBar.add(container);
     return { id, container, badge, badgeText, count: 1 };
+  }
+
+  private buildSynergyPanel(): void {
+    this.synergyPanel = this.scene.add.container(0, 0).setScrollFactor(0);
+    this.layer.add(this.synergyPanel);
+  }
+
+  /** 좌측 조합(시너지) 패널을 현재 파티 구성에 맞춰 다시 그린다(롤토체스식 표시). */
+  private refreshSynergy(counts: Map<string, number>): void {
+    if (!this.synergyPanel) return;
+    this.synergyPanel.removeAll(true);
+
+    const present = Object.values(SYNERGY_DEFS)
+      .map((def) => ({ def, count: counts.get(def.id) ?? 0 }))
+      .filter((entry) => entry.count > 0)
+      .sort((a, b) => b.count - a.count);
+    if (present.length === 0) return;
+
+    const { x, y, w, rowH, headerH } = this.synergyGeom;
+    const panelH = headerH + present.length * rowH + 8;
+
+    const bg = this.scene.add.graphics().setScrollFactor(0);
+    bg.fillStyle(COLOR.panelFill, 0.82);
+    bg.fillRoundedRect(x, y, w, panelH, 8);
+    bg.lineStyle(2, 0xc47aff, 0.4);
+    bg.strokeRoundedRect(x, y, w, panelH, 8);
+    this.synergyPanel.add(bg);
+
+    this.synergyPanel.add(
+      this.scene.add
+        .text(x + 12, y + 7, "조합", {
+          fontFamily: FONT,
+          fontSize: "13px",
+          color: COLOR.bone,
+        })
+        .setScrollFactor(0),
+    );
+
+    present.forEach(({ def, count }, i) => {
+      const rowY = y + headerH + i * rowH;
+      const info = MERC_HUD[def.id];
+      const active = activeTier(def, count);
+      const next = nextTier(def, count);
+
+      const pip = this.scene.add.graphics().setScrollFactor(0);
+      pip.fillStyle(info.color, active ? 1 : 0.4);
+      pip.fillCircle(x + 18, rowY + 12, 6);
+      this.synergyPanel.add(pip);
+
+      this.synergyPanel.add(
+        this.scene.add
+          .text(x + 32, rowY + 4, def.name, {
+            fontFamily: FONT,
+            fontSize: "14px",
+            color: active ? COLOR.timer : COLOR.bone,
+          })
+          .setScrollFactor(0),
+      );
+      this.synergyPanel.add(
+        this.scene.add
+          .text(x + w - 12, rowY + 4, `${count}`, {
+            fontFamily: FONT,
+            fontSize: "14px",
+            color: active ? COLOR.timer : COLOR.ash,
+          })
+          .setOrigin(1, 0)
+          .setScrollFactor(0),
+      );
+
+      const desc = active ? active.desc : next ? `${next.count}명: ${next.desc}` : "";
+      this.synergyPanel.add(
+        this.scene.add
+          .text(x + 32, rowY + 22, desc, {
+            fontFamily: FONT,
+            fontSize: "11px",
+            color: active ? "#c9b8e8" : COLOR.ash,
+            wordWrap: { width: w - 44 },
+          })
+          .setScrollFactor(0),
+      );
+    });
   }
 
   private layoutMercBar(): void {
