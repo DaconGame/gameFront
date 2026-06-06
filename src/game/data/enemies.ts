@@ -18,7 +18,7 @@ export type EnemyId =
   | "boss-werewolf"
   | "boss-werebear"
   | "boss-armoredskeleton";
-export type EnemyAnimKind = "idle" | "walk" | "hurt" | "death";
+export type EnemyAnimKind = "idle" | "walk" | "hurt" | "death" | "attack";
 
 export const ENEMY_FRAME = { width: 100, height: 100 } as const;
 
@@ -145,6 +145,7 @@ const ANIM_FILE: Record<EnemyAnimKind, string> = {
   walk: "Walk",
   hurt: "Hurt",
   death: "Death",
+  attack: "Attack01",
 };
 
 export function enemySheetPath(folder: string, kind: EnemyAnimKind, fileOverride?: string): string {

@@ -74,13 +74,18 @@ export class PreloadScene extends Phaser.Scene {
     // 적 스프라이트시트 (idle / walk / hurt / death). 시트 파일명이 다른 적은 sheetFiles로 보정.
     const enemyFrame = { frameWidth: ENEMY_FRAME.width, frameHeight: ENEMY_FRAME.height };
     for (const id of ENEMY_IDS) {
-      const { folder, sheetFiles } = ENEMY_DEFS[id];
+      const def = ENEMY_DEFS[id];
+      const { folder, sheetFiles } = def;
       for (const kind of ["idle", "walk", "hurt", "death"] as const) {
         this.load.spritesheet(
           enemyTex(id, kind),
           enemySheetPath(folder, kind, sheetFiles?.[kind]),
           enemyFrame,
         );
+      }
+      // 공격 모션은 보스만 사용한다.
+      if (def.boss) {
+        this.load.spritesheet(enemyTex(id, "attack"), enemySheetPath(folder, "attack"), enemyFrame);
       }
     }
 
