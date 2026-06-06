@@ -8,6 +8,7 @@ import {
   mercWalkTex,
   type MercCombat,
 } from "../data/mercs";
+import { playClassAttackEffect } from "../effects/classAttackEffects";
 import { applyRankToCombat } from "../data/unitRanks";
 import type { PartyUnit } from "../state/partyUnits";
 
@@ -79,6 +80,7 @@ export class Mercenary extends Phaser.GameObjects.Sprite {
       this.attacking = true;
       this.off(`animationcomplete-${attackKey}`);
       this.play(attackKey, true);
+      playClassAttackEffect(this.scene, this, this.mercId);
       this.once(`animationcomplete-${attackKey}`, () => {
         this.attacking = false;
         this.playLocomotion();

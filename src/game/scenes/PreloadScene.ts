@@ -27,6 +27,7 @@ import {
 } from "../data/enemies";
 import { MERC_ATTACK_SOURCES, MERC_WALK_SOURCES } from "../data/mercs";
 import { SFX_ASSETS, sfxKey, type SfxId } from "../data/sfx";
+import { CLASS_ATTACK_EFFECT_SOURCES } from "../effects/classAttackEffects";
 
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -91,6 +92,10 @@ export class PreloadScene extends Phaser.Scene {
 
     for (const merc of MERC_ATTACK_SOURCES) {
       this.load.spritesheet(merc.tex, merc.path, classFrame);
+    }
+
+    for (const effect of CLASS_ATTACK_EFFECT_SOURCES) {
+      this.load.spritesheet(effect.tex, effect.path, classFrame);
     }
 
     // 화살 투사체 (단일 이미지)

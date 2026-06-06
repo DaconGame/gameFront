@@ -31,6 +31,10 @@ import { WaveManager } from "../systems/WaveManager";
 import { ProjectileManager } from "../systems/ProjectileManager";
 import { MercManager } from "../systems/MercManager";
 import { SfxManager } from "../systems/SfxManager";
+import {
+  ensureClassAttackEffectAnimations,
+  playClassAttackEffect,
+} from "../effects/classAttackEffects";
 import { getUpgrade, type UpgradeId } from "../data/upgrades";
 import { buildHudSnapshot } from "../../ui/game/hudSnapshot";
 import {
@@ -643,6 +647,7 @@ export class DungeonScene extends Phaser.Scene {
     }
     this.registerOneShotClassAnim(TEX.classHurt, CLASS_ANIM.hurt, 10);
     this.registerOneShotClassAnim(TEX.classDeath, CLASS_ANIM.death, 8);
+    ensureClassAttackEffectAnimations(this);
   }
 
   private registerOneShotClassAnim(texKey: string, animKey: string, frameRate: number): void {
@@ -663,6 +668,7 @@ export class DungeonScene extends Phaser.Scene {
     this.player.setFlipX(targetX < this.player.x);
     this.attacking = true;
     this.player.play(CLASS_ANIM.attack, true);
+    playClassAttackEffect(this, this.player, this.registry.get("classId") as string);
     this.player.once("animationcomplete-" + CLASS_ANIM.attack, () => {
       this.attacking = false;
     });
