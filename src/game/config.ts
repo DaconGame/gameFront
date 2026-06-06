@@ -66,6 +66,7 @@ export const TEX = {
   flameParticle: "tex-flame-particle",
   arrow: "tex-arrow",
   wizardAttackEffect: "tex-wizard-attack02-effect",
+  wizardExplosionEffect: "tex-wizard-attack01-effect",
   priestHealEffect: "tex-priest-heal-effect",
 } as const;
 
@@ -81,6 +82,9 @@ export const PACK_PATH = {
   ),
   wizardAttackEffect: encodeURI(
     "assets/Tiny RPG Character Asset Pack v1.03 -Full 20 Characters/Magic(Projectile)/Wizard-Attack02_Effect.png",
+  ),
+  wizardExplosionEffect: encodeURI(
+    "assets/Tiny RPG Character Asset Pack v1.03 -Full 20 Characters/Magic(Projectile)/Wizard-Attack01_Effect.png",
   ),
   priestHealEffect: encodeURI(
     "assets/Tiny RPG Character Asset Pack v1.03 -Full 20 Characters/Magic(Projectile)/Priest-Heal_Effect.png",
@@ -103,6 +107,7 @@ export const CLASS_ANIM = {
 
 export const EFFECT_ANIM = {
   wizardAttack: "effect-wizard-attack02",
+  wizardExplosion: "effect-wizard-explosion",
   priestHeal: "effect-priest-heal",
 } as const;
 

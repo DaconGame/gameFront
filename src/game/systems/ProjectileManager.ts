@@ -104,6 +104,22 @@ export class ProjectileManager {
         repeat: -1,
       });
     }
+    if (
+      this.scene.textures.exists(TEX.wizardExplosionEffect) &&
+      !this.scene.anims.exists(EFFECT_ANIM.wizardExplosion)
+    ) {
+      const img = this.scene.textures.get(TEX.wizardExplosionEffect).getSourceImage() as HTMLImageElement;
+      const frameTotal = Math.max(1, Math.floor(img.width / 100));
+      this.scene.anims.create({
+        key: EFFECT_ANIM.wizardExplosion,
+        frames: this.scene.anims.generateFrameNumbers(TEX.wizardExplosionEffect, {
+          start: 0,
+          end: frameTotal - 1,
+        }),
+        frameRate: 18,
+        repeat: 0,
+      });
+    }
   }
 
   private onHit(p: Projectile, e: Enemy): void {
@@ -135,6 +151,21 @@ export class ProjectileManager {
   }
 
   private spawnExplosion(cx: number, cy: number, radius: number): void {
+    if (
+      this.scene.textures.exists(TEX.wizardExplosionEffect) &&
+      this.scene.anims.exists(EFFECT_ANIM.wizardExplosion)
+    ) {
+      const effect = this.scene.add
+        .sprite(cx, cy, TEX.wizardExplosionEffect, 0)
+        .setOrigin(0.5)
+        .setScale(Math.max(1.6, radius / 38))
+        .setDepth(23)
+        .setBlendMode(Phaser.BlendModes.ADD);
+      effect.play(EFFECT_ANIM.wizardExplosion, true);
+      effect.once(`animationcomplete-${EFFECT_ANIM.wizardExplosion}`, () => effect.destroy());
+      return;
+    }
+
     const ring = this.scene.add
       .circle(cx, cy, radius, MAGIC_TINT, 0.55)
       .setDepth(23)
