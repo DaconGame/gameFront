@@ -7,7 +7,7 @@ type Props = {
 function Tooltip({ unit }: { unit: HudPartyUnit }) {
   return (
     <div
-      className="pointer-events-none absolute bottom-[calc(100%+12px)] left-1/2 z-20 min-w-44 -translate-x-1/2 translate-y-1 border-2 bg-dungeon-deepest/95 px-3 py-2 text-left opacity-0 shadow-[0_0_0_2px_rgba(0,0,0,0.6),0_6px_24px_rgba(0,0,0,0.7)] transition group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
+      className="pointer-events-none absolute bottom-[calc(100%+12px)] left-1/2 z-20 min-w-48 -translate-x-1/2 translate-y-1 rounded-[6px] border-2 bg-dungeon-deepest/95 px-3 py-2 text-left opacity-0 shadow-[inset_1px_1px_0_rgba(236,226,200,0.12),0_0_0_2px_rgba(0,0,0,0.65),0_8px_26px_rgba(0,0,0,0.72)] transition group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
       role="tooltip"
       style={{ borderColor: unit.color }}
     >
@@ -33,13 +33,17 @@ function MercSlot({ unit }: { unit: HudPartyUnit }) {
     >
       <Tooltip unit={unit} />
       <div
-        className="relative flex h-[60px] w-[60px] items-center justify-center border-2 bg-dungeon-deepest/90 shadow-[0_0_0_2px_rgba(0,0,0,0.55)]"
+        className="relative flex h-[62px] w-[62px] items-center justify-center rounded-[6px] border-2 bg-dungeon-deepest/92 shadow-[inset_1px_1px_0_rgba(236,226,200,0.12),0_0_0_2px_rgba(0,0,0,0.58),0_8px_18px_rgba(0,0,0,0.5)] transition group-hover:-translate-y-1"
         style={{ borderColor: unit.color }}
       >
+        <span
+          className="absolute inset-1 rounded-[4px] opacity-25"
+          style={{ background: `radial-gradient(circle at 50% 70%, ${unit.color} 0%, transparent 58%)` }}
+        />
         <img
           src={unit.spriteUrl}
           alt=""
-          className="h-[78px] w-[78px] object-contain"
+          className="relative h-[80px] w-[80px] object-contain"
           style={{ filter: `drop-shadow(0 0 7px ${unit.color})` }}
         />
         {unit.rank > 1 && (
@@ -51,7 +55,9 @@ function MercSlot({ unit }: { unit: HudPartyUnit }) {
           </span>
         )}
       </div>
-      <span className="mt-1 text-[11px] leading-none text-bone-white/80">{unit.label}</span>
+      <span className="mt-1 text-[11px] leading-none text-bone-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+        {unit.label}
+      </span>
     </div>
   );
 }
@@ -61,7 +67,7 @@ export function MercBar({ party }: Props) {
 
   return (
     <nav
-      className="pointer-events-auto absolute bottom-5 left-1/2 flex -translate-x-1/2 items-end gap-2"
+      className="pointer-events-auto absolute bottom-5 left-1/2 flex -translate-x-1/2 items-end gap-2 rounded-[6px] border border-bone-white/10 bg-black/18 px-2 pt-1 shadow-[0_0_24px_rgba(0,0,0,0.35)]"
       aria-label="용병 HUD"
     >
       {party.map((unit) => (
