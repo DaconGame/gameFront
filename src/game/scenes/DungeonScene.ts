@@ -34,6 +34,15 @@ import { ProjectileManager } from "../systems/ProjectileManager";
 import { MercManager } from "../systems/MercManager";
 import { SfxManager } from "../systems/SfxManager";
 import { getUpgrade, type UpgradeId } from "../data/upgrades";
+import { buildHudSnapshot } from "../../ui/game/hudSnapshot";
+import {
+  GAME_RESTART_REQUEST_EVENT,
+  GAME_RESUME_REQUEST_EVENT,
+  emitHudSnapshot,
+  emitPauseState,
+  emitResultState,
+} from "../../ui/game/hudEvents";
+import type { HudBoss, HudResult } from "../../ui/game/hudTypes";
 
 const GAME_EXIT_EVENT = "game:exit";
 const UPGRADE_REQUEST_EVENT = "game:upgrade-request";
@@ -76,6 +85,8 @@ export class DungeonScene extends Phaser.Scene {
   private upgradeOverlay?: Phaser.GameObjects.Container;
   private upgradeSelectedHandler?: EventListener;
   private devWaveSecHandler?: EventListener;
+  private resumeRequestHandler?: EventListener;
+  private restartRequestHandler?: EventListener;
   private hurtCooldown = 0;
   private state!: GameState;
   private waves?: WaveManager;
@@ -84,6 +95,8 @@ export class DungeonScene extends Phaser.Scene {
   private sfx!: SfxManager;
   private boss?: Enemy;
   private bossAura?: Phaser.GameObjects.Container;
+  private bossHud: HudBoss | null = null;
+  private lastHudEmitAt = 0;
   private facing: Facing = "down";
   private usingClass = false;
   private attacking = false;
@@ -159,6 +172,11 @@ export class DungeonScene extends Phaser.Scene {
     this.state.on(GAME_EVENT.upgradeRequest, this.onUpgradeRequest, this);
     this.state.on(GAME_EVENT.bossStart, this.onBossStart, this);
     this.state.on(GAME_EVENT.bossEnd, this.onBossEnd, this);
+    this.state.on(GAME_EVENT.wave, this.emitReactHud, this);
+    this.state.on(GAME_EVENT.hp, this.emitReactHud, this);
+    this.state.on(GAME_EVENT.party, this.emitReactHud, this);
+    this.state.on(GAME_EVENT.kills, this.emitReactHud, this);
+    this.state.on(GAME_EVENT.score, this.emitReactHud, this);
 
     this.input.keyboard?.on("keydown-ESC", () => this.togglePause());
 
@@ -167,6 +185,12 @@ export class DungeonScene extends Phaser.Scene {
       this.completeUpgradeWait(detail?.upgradeId);
     };
     window.addEventListener(UPGRADE_SELECTED_EVENT, this.upgradeSelectedHandler);
+    this.resumeRequestHandler = () => this.setPaused(false);
+    this.restartRequestHandler = () => {
+      if (this.gameOver) this.scene.restart();
+    };
+    window.addEventListener(GAME_RESUME_REQUEST_EVENT, this.resumeRequestHandler);
+    window.addEventListener(GAME_RESTART_REQUEST_EVENT, this.restartRequestHandler);
     if (this.registry.get("devMode") === true) {
       this.devWaveSecHandler = (event) => {
         const detail = (event as CustomEvent<{ waveSec?: number }>).detail;
@@ -178,6 +202,9 @@ export class DungeonScene extends Phaser.Scene {
     this.events.once("destroy", this.cleanupScene, this);
 
     if (this.registry.get("tutorial") === true) this.startTutorial();
+    emitPauseState(window, false);
+    emitResultState(window, null);
+    this.emitReactHud();
   }
 
   /** 튜토리얼 모드: 자동 진행을 끄고 안내 가이드를 시작한다. */
@@ -202,6 +229,7 @@ export class DungeonScene extends Phaser.Scene {
     this.hideUpgradeWait();
     this.clearBossVisuals();
     this.hud?.hideBossBar();
+    this.bossHud = null;
 
     const body = this.player.body as Phaser.Physics.Arcade.Body;
     body.setVelocity(0, 0);
@@ -210,14 +238,18 @@ export class DungeonScene extends Phaser.Scene {
     this.physics.world.pause();
     this.pauseMenu?.hide();
 
-    this.overMenu?.show({
+    const result = {
       victory: payload.victory,
       elapsedSec: this.state.elapsedSec,
       kills: this.state.kills,
       score: this.state.score,
       finalScore: this.state.finalScore,
       wave: this.state.wave,
-    });
+    } satisfies HudResult;
+    emitPauseState(window, false);
+    emitResultState(window, result);
+    this.emitReactHud();
+    this.overMenu?.show(result);
   }
 
   private togglePause(): void {
@@ -240,6 +272,7 @@ export class DungeonScene extends Phaser.Scene {
       this.physics.world.resume();
       this.pauseMenu?.hide();
     }
+    emitPauseState(window, paused);
   }
 
   /** 적과 겹칠 때 호출. 전역 최소 간격 + 적 개체별 쿨다운을 모두 통과하면 그 적의 피해량만큼 깎는다. */
@@ -324,8 +357,14 @@ export class DungeonScene extends Phaser.Scene {
 
     if (this.boss?.targetable) {
       this.hud?.updateBossHp(this.boss.hp);
+      this.bossHud = this.makeBossHud(this.boss.def.label, this.boss.hp, this.boss.maxHp);
       const c = this.boss.getCenter();
       this.bossAura?.setPosition(c.x, c.y);
+    }
+
+    if (this.time.now - this.lastHudEmitAt >= 100) {
+      this.emitReactHud();
+      this.lastHudEmitAt = this.time.now;
     }
   }
 
@@ -416,6 +455,8 @@ export class DungeonScene extends Phaser.Scene {
       this.boss = boss;
       this.attachBossAura(boss);
       this.hud?.showBossBar(boss.def.label, boss.maxHp);
+      this.bossHud = this.makeBossHud(boss.def.label, boss.hp, boss.maxHp);
+      this.emitReactHud();
       this.showBossBanner(boss.def.label);
     }
     this.cameras.main.shake(280, 0.008);
@@ -425,7 +466,9 @@ export class DungeonScene extends Phaser.Scene {
   private onBossEnd(): void {
     this.clearBossVisuals();
     this.boss = undefined;
+    this.bossHud = null;
     this.hud?.hideBossBar();
+    this.emitReactHud();
   }
 
   /** 잡몹과 구분되도록 보스에 맥동하는 붉은 이중 오라를 입힌다. */
@@ -550,6 +593,14 @@ export class DungeonScene extends Phaser.Scene {
     if (this.devWaveSecHandler) {
       window.removeEventListener(DEV_WAVE_SEC_EVENT, this.devWaveSecHandler);
       this.devWaveSecHandler = undefined;
+    }
+    if (this.resumeRequestHandler) {
+      window.removeEventListener(GAME_RESUME_REQUEST_EVENT, this.resumeRequestHandler);
+      this.resumeRequestHandler = undefined;
+    }
+    if (this.restartRequestHandler) {
+      window.removeEventListener(GAME_RESTART_REQUEST_EVENT, this.restartRequestHandler);
+      this.restartRequestHandler = undefined;
     }
     this.tutorial?.destroy();
     this.tutorial = undefined;
@@ -812,6 +863,19 @@ export class DungeonScene extends Phaser.Scene {
     // 파티 0번 = 플레이어 자신(선택한 직업). 추가 용병은 카드로 고용된다.
     const classId = this.registry.get("classId") as string | null;
     this.state.addPlayerClass(classId ?? "sword");
+  }
+
+  private emitReactHud(): void {
+    emitHudSnapshot(window, buildHudSnapshot(this.state, this.bossHud));
+  }
+
+  private makeBossHud(name: string, hp: number, maxHp: number): HudBoss {
+    return {
+      name,
+      hp,
+      maxHp,
+      ratio: Phaser.Math.Clamp(hp / maxHp, 0, 1),
+    };
   }
 
   private setupInput(): void {

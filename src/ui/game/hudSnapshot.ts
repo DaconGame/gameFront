@@ -115,7 +115,15 @@ function synergyRows(party: HudStateSource["party"]): HudSynergyRow[] {
   })
     .filter((row) => row.have > 0)
     .sort((a, b) => Number(b.active) - Number(a.active) || b.have - a.have)
-    .map(({ have: _have, ...row }) => row);
+    .map((row) => ({
+      key: row.key,
+      name: row.name,
+      active: row.active,
+      progressLabel: row.progressLabel,
+      missingLabels: row.missingLabels,
+      classes: row.classes,
+      tooltip: row.tooltip,
+    }));
 }
 
 export function buildHudSnapshot(source: HudStateSource, boss: HudBoss | null = null): GameHudSnapshot {
