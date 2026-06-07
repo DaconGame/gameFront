@@ -358,8 +358,7 @@ export class DungeonScene extends Phaser.Scene {
 
     this.shadow.setPosition(this.player.x, this.player.y + this.footOffset);
 
-    this.floor.tilePositionX = this.cameras.main.scrollX;
-    this.floor.tilePositionY = this.cameras.main.scrollY;
+    this.syncFloorScroll();
 
     this.state.tick(delta);
     this.waves?.update(delta);
@@ -695,6 +694,11 @@ export class DungeonScene extends Phaser.Scene {
     }
   }
 
+  private syncFloorScroll(): void {
+    this.floor.tilePositionX = this.cameras.main.scrollX / this.floor.tileScaleX;
+    this.floor.tilePositionY = this.cameras.main.scrollY / this.floor.tileScaleY;
+  }
+
   private onWaveChanged(): void {
     this.updateFloorTexture();
     this.emitReactHud();
@@ -706,6 +710,7 @@ export class DungeonScene extends Phaser.Scene {
     this.floor.setTexture(key);
     this.floorTextureKey = key;
     this.applyFloorScale(key);
+    this.syncFloorScroll();
     if (key !== TEX.stage1Background) this.spawnAmbientTorches();
   }
 
