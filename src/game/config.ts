@@ -41,6 +41,7 @@ export const TEX = {
   vignette: "tex-vignette",
   floorPatch: "tex-floor-patch",
   stage1Background: "tex-stage1-background",
+  cemeteryBackground: "tex-cemetery-background",
   heroIdleDown: "tex-hero-idle-down",
   heroIdleUp: "tex-hero-idle-up",
   heroIdleSide: "tex-hero-idle-side",
@@ -75,6 +76,7 @@ export const PACK_PATH = {
   tileset: "assets/dungeon/tileset.png",
   torchStrip: "assets/dungeon/torch_strip.png",
   stage1Background: "assets/TilesetGrass/untitled.png",
+  cemeteryBackground: "assets/backgrounds/cemetery.png",
   heroIdleDown: "assets/characters/hero/idle_down.png",
   heroIdleUp: "assets/characters/hero/idle_up.png",
   heroIdleSide: "assets/characters/hero/idle_side.png",
@@ -94,7 +96,9 @@ export const PACK_PATH = {
 } as const;
 
 export function stageBackgroundTex(wave: number): string | undefined {
-  return wave === 1 ? TEX.stage1Background : undefined;
+  if (wave >= 1 && wave <= 5) return TEX.stage1Background;
+  if (wave >= 6 && wave <= 15) return TEX.cemeteryBackground;
+  return undefined;
 }
 
 export const HERO_ANIM = {

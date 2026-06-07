@@ -682,7 +682,7 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private applyFloorScale(key: string): void {
-    if (key === TEX.stage1Background) {
+    if (this.isStageBackground(key)) {
       this.floor.tileScaleX = STAGE_BACKGROUND_SCALE;
       this.floor.tileScaleY = STAGE_BACKGROUND_SCALE;
     } else if (key === TEX.procFloor) {
@@ -692,6 +692,10 @@ export class DungeonScene extends Phaser.Scene {
       this.floor.tileScaleX = 1;
       this.floor.tileScaleY = 1;
     }
+  }
+
+  private isStageBackground(key = this.floorTextureKey): boolean {
+    return key === TEX.stage1Background || key === TEX.cemeteryBackground;
   }
 
   private syncFloorScroll(): void {
@@ -711,7 +715,7 @@ export class DungeonScene extends Phaser.Scene {
     this.floorTextureKey = key;
     this.applyFloorScale(key);
     this.syncFloorScroll();
-    if (key !== TEX.stage1Background) this.spawnAmbientTorches();
+    if (!this.isStageBackground(key)) this.spawnAmbientTorches();
   }
 
   private registerAnimations(): void {
@@ -888,7 +892,7 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private spawnAmbientTorches(): void {
-    if (this.ambientTorchesSpawned || this.floorTextureKey === TEX.stage1Background) return;
+    if (this.ambientTorchesSpawned || this.isStageBackground()) return;
     this.ambientTorchesSpawned = true;
 
     const ringRadius = 360;
