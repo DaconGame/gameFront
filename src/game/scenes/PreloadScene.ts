@@ -45,6 +45,7 @@ export class PreloadScene extends Phaser.Scene {
       frameWidth: TILE_SIZE,
       frameHeight: TILE_SIZE,
     });
+    this.load.image(TEX.stage1Background, PACK_PATH.stage1Background);
 
     const heroFrame = { frameWidth: HERO_FRAME.width, frameHeight: HERO_FRAME.height };
     this.load.spritesheet(TEX.heroIdleDown, PACK_PATH.heroIdleDown, heroFrame);

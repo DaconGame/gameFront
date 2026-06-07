@@ -40,6 +40,7 @@ export const TEX = {
   torchStrip: "tex-torch-strip",
   vignette: "tex-vignette",
   floorPatch: "tex-floor-patch",
+  stage1Background: "tex-stage1-background",
   heroIdleDown: "tex-hero-idle-down",
   heroIdleUp: "tex-hero-idle-up",
   heroIdleSide: "tex-hero-idle-side",
@@ -73,6 +74,7 @@ export const TEX = {
 export const PACK_PATH = {
   tileset: "assets/dungeon/tileset.png",
   torchStrip: "assets/dungeon/torch_strip.png",
+  stage1Background: "assets/TilesetGrass/untitled.png",
   heroIdleDown: "assets/characters/hero/idle_down.png",
   heroIdleUp: "assets/characters/hero/idle_up.png",
   heroIdleSide: "assets/characters/hero/idle_side.png",

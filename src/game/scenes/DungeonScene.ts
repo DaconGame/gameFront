@@ -53,6 +53,7 @@ const UPGRADE_SELECTED_EVENT = "game:upgrade-selected";
 const UPGRADE_REROLL_EVENT = "game:upgrade-reroll";
 const DEV_WAVE_SEC_EVENT = "game:dev-wave-sec-change";
 const TORCH_ANIM_KEY = "torch-burn";
+const STAGE_BACKGROUND_SCALE = TILE_DRAW / 16;
 /**
  * 피격 사이의 짧은 전역 최소 간격(ms).
  * 무적은 적 개체별 쿨다운(Enemy.canHitPlayer)으로 관리하고,
@@ -659,8 +660,9 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private createInfiniteFloor(): void {
+    const useStage = this.textures.exists(TEX.stage1Background);
     const useBaked = this.textures.exists(TEX.floorPatch);
-    const key = useBaked ? TEX.floorPatch : TEX.procFloor;
+    const key = useStage ? TEX.stage1Background : useBaked ? TEX.floorPatch : TEX.procFloor;
 
     this.floor = this.add
       .tileSprite(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, key)
@@ -668,7 +670,10 @@ export class DungeonScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(0);
 
-    if (!useBaked) {
+    if (useStage) {
+      this.floor.tileScaleX = STAGE_BACKGROUND_SCALE;
+      this.floor.tileScaleY = STAGE_BACKGROUND_SCALE;
+    } else if (!useBaked) {
       this.floor.tileScaleX = TILE_SCALE;
       this.floor.tileScaleY = TILE_SCALE;
     }
@@ -848,6 +853,8 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private spawnAmbientTorches(): void {
+    if (this.textures.exists(TEX.stage1Background)) return;
+
     const ringRadius = 360;
     const positions = [
       { x: -ringRadius, y: -ringRadius * 0.6 },
