@@ -37,11 +37,11 @@ function MercSlot({ unit }: { unit: HudPartyUnit }) {
         style={{ borderColor: unit.color }}
       >
         <span
-          className="absolute inset-1 rounded-[4px] opacity-25"
+          className="pointer-events-none absolute inset-1 rounded-[4px] opacity-25"
           style={{ background: `radial-gradient(circle at 50% 70%, ${unit.color} 0%, transparent 58%)` }}
         />
         <div
-          className="merc-sprite relative h-[80px] w-[80px]"
+          className="merc-sprite pointer-events-none relative h-[80px] w-[80px]"
           style={
             {
               "--merc-sprite": `url("${unit.spriteUrl}")`,
@@ -54,7 +54,7 @@ function MercSlot({ unit }: { unit: HudPartyUnit }) {
         />
         {unit.rank > 1 && (
           <span
-            className="absolute -right-2 -top-2 min-w-6 border px-1 text-center font-pixel-en text-[9px] leading-5 text-dungeon-deepest"
+            className="pointer-events-none absolute -right-2 -top-2 min-w-6 border px-1 text-center font-pixel-en text-[9px] leading-5 text-dungeon-deepest"
             style={{ borderColor: unit.color, backgroundColor: unit.color }}
           >
             {unit.badge}
