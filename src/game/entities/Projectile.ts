@@ -9,10 +9,12 @@ export type ProjectileConfig = {
   /** 0 이면 단일 타격, >0 이면 착탄 시 광역 피해 반경(px) */
   aoe: number;
   texture: string;
+  frame?: number;
   scale: number;
   tint: number;
   maxRange: number;
   rotateToDir: boolean;
+  rotationOffset?: number;
   animKey?: string;
   /** 충돌 판정용 원형 반경(텍스처 px 기준, 스프라이트 스케일이 곱해짐). */
   bodyRadius: number;
@@ -40,11 +42,12 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     this.maxRange = cfg.maxRange;
 
     this.setTexture(cfg.texture);
+    if (cfg.frame !== undefined) this.setFrame(cfg.frame);
     this.setPosition(cfg.x, cfg.y);
     this.setScale(cfg.scale);
     this.setTint(cfg.tint);
     this.setDepth(PROJECTILE_DEPTH);
-    this.setRotation(cfg.rotateToDir ? cfg.angle : 0);
+    this.setRotation((cfg.rotateToDir ? cfg.angle : 0) + (cfg.rotationOffset ?? 0));
     this.anims.stop();
     if (cfg.animKey && this.scene.anims.exists(cfg.animKey)) this.play(cfg.animKey, true);
     this.setActive(true);
