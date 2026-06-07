@@ -4,8 +4,6 @@ import {
   CLASS_DEFS,
   CLASS_FRAME,
   CLASS_SCALE,
-  GAME_HEIGHT,
-  GAME_WIDTH,
   HERO_ANIM,
   HERO_FRAME,
   HEX,
@@ -85,6 +83,7 @@ type Facing = "down" | "up" | "side";
 
 export class DungeonScene extends Phaser.Scene {
   private floor!: Phaser.GameObjects.TileSprite;
+  private vignette?: Phaser.GameObjects.Image;
   private player!: Phaser.Physics.Arcade.Sprite;
   private shadow!: Phaser.GameObjects.Image;
   private keys?: WasdKeys;
@@ -213,6 +212,8 @@ export class DungeonScene extends Phaser.Scene {
       };
       window.addEventListener(DEV_WAVE_SEC_EVENT, this.devWaveSecHandler);
     }
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.layoutToScreen, this);
+    this.layoutToScreen();
     this.events.once("shutdown", this.cleanupScene, this);
     this.events.once("destroy", this.cleanupScene, this);
 
@@ -635,8 +636,8 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private showBossBanner(name: string): void {
-    const cx = GAME_WIDTH / 2;
-    const cy = GAME_HEIGHT / 2 - 60;
+    const cx = this.scale.width / 2;
+    const cy = this.scale.height / 2 - 60;
     const banner = this.add.container(0, 0).setScrollFactor(0).setDepth(86);
 
     const title = this.add
@@ -671,6 +672,7 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private cleanupScene(): void {
+    this.scale.off(Phaser.Scale.Events.RESIZE, this.layoutToScreen, this);
     if (this.upgradeSelectedHandler) {
       window.removeEventListener(UPGRADE_SELECTED_EVENT, this.upgradeSelectedHandler);
       this.upgradeSelectedHandler = undefined;
@@ -702,7 +704,7 @@ export class DungeonScene extends Phaser.Scene {
     const key = useBaked ? TEX.floorPatch : TEX.procFloor;
 
     this.floor = this.add
-      .tileSprite(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, key)
+      .tileSprite(this.scale.width / 2, this.scale.height / 2, this.scale.width, this.scale.height, key)
       .setOrigin(0.5, 0.5)
       .setScrollFactor(0)
       .setDepth(0);
@@ -711,6 +713,13 @@ export class DungeonScene extends Phaser.Scene {
       this.floor.tileScaleX = TILE_SCALE;
       this.floor.tileScaleY = TILE_SCALE;
     }
+  }
+
+  /** 화면(캔버스) 크기에 맞춰 전체 화면을 덮는 요소(바닥·비네트)를 다시 맞춘다. */
+  private layoutToScreen(): void {
+    const { width, height } = this.scale;
+    if (this.floor) this.floor.setPosition(width / 2, height / 2).setSize(width, height);
+    if (this.vignette) this.vignette.setPosition(0, 0).setDisplaySize(width, height);
   }
 
   private registerAnimations(): void {
@@ -939,12 +948,13 @@ export class DungeonScene extends Phaser.Scene {
 
   private drawVignette(): void {
     if (!this.textures.exists(TEX.vignette)) return;
-    this.add
+    this.vignette = this.add
       .image(0, 0, TEX.vignette)
       .setOrigin(0, 0)
       .setDepth(18)
       .setScrollFactor(0)
-      .setBlendMode(Phaser.BlendModes.MULTIPLY);
+      .setBlendMode(Phaser.BlendModes.MULTIPLY)
+      .setDisplaySize(this.scale.width, this.scale.height);
   }
 
   private buildHud(): void {
