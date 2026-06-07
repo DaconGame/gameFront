@@ -5,7 +5,7 @@ import {
 } from "./hudEvents.ts";
 import type { HudResult } from "./hudTypes.ts";
 import { PixelIcon } from "./HudIcons.tsx";
-import { recordScore } from "./bestScore.ts";
+import { recordScore, saveGameRecord } from "./bestScore.ts";
 
 const GAME_EXIT_EVENT = "game:exit";
 
@@ -76,7 +76,10 @@ function StatRow({ label, value, accent = false }: { label: string; value: strin
 }
 
 export function ResultOverlay({ result }: { result: HudResult }) {
-  const [{ best, isNewRecord }] = useState(() => recordScore(result.finalScore));
+  const [{ best, isNewRecord }] = useState(() => {
+    saveGameRecord(result);
+    return recordScore(result.finalScore);
+  });
 
   const theme = result.victory
     ? {

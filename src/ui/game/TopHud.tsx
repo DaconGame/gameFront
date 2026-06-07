@@ -42,14 +42,18 @@ export function TopHud({ snapshot }: Props) {
         </div>
       </Panel>
 
-      <Panel className="absolute left-4 top-[88px] flex h-10 w-[264px] items-center justify-between border-torch-core/45 px-3 text-[13px]">
-        <span className="flex items-center gap-1.5">
+      <Panel className="absolute left-4 top-[88px] flex h-10 w-[264px] items-center justify-between border-torch-core/45 px-3 text-[12px]">
+        <span className="flex items-center gap-1">
           <PixelIcon name="sword" className="h-3 w-3 text-bone-white/80" />
           처치 {snapshot.stats.kills}
         </span>
-        <span className="flex items-center gap-1.5 text-torch-core">
+        <span className="flex items-center gap-1 text-torch-core">
           <PixelIcon name="star" className="h-3 w-3" />
-          점수 {snapshot.stats.score}
+          {snapshot.stats.score}
+        </span>
+        <span className="flex items-center gap-1 text-coin-gold">
+          <PixelIcon name="coin" className="h-3 w-3 drop-shadow-[0_0_5px_rgba(255,210,74,0.55)]" />
+          {snapshot.stats.coins}
         </span>
       </Panel>
 

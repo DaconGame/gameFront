@@ -37,7 +37,11 @@ import {
   playClassAttackEffect,
 } from "../effects/classAttackEffects";
 import { getUpgrade, type UpgradeId } from "../data/upgrades";
-import { buildHudSnapshot } from "../../ui/game/hudSnapshot";
+import {
+  buildHudSnapshot,
+  resultMercsFromSnapshot,
+  resultSynergiesFromSnapshot,
+} from "../../ui/game/hudSnapshot";
 import {
   GAME_RESTART_REQUEST_EVENT,
   GAME_RESUME_REQUEST_EVENT,
@@ -177,6 +181,7 @@ export class DungeonScene extends Phaser.Scene {
     this.state.on(GAME_EVENT.party, this.emitReactHud, this);
     this.state.on(GAME_EVENT.kills, this.emitReactHud, this);
     this.state.on(GAME_EVENT.score, this.emitReactHud, this);
+    this.state.on(GAME_EVENT.coins, this.emitReactHud, this);
 
     this.input.keyboard?.on("keydown-ESC", () => this.togglePause());
 
@@ -189,7 +194,7 @@ export class DungeonScene extends Phaser.Scene {
     this.upgradeRerollHandler = (event) => {
       if (!this.waitingForUpgrade || this.gameOver) return;
       const cost = (event as CustomEvent<{ cost?: number }>).detail?.cost ?? 0;
-      const ok = this.state.spendScore(cost);
+      const ok = this.state.spendCoins(cost);
       this.sfx.play(ok ? "uiConfirm" : "uiDenied");
     };
     window.addEventListener(UPGRADE_REROLL_EVENT, this.upgradeRerollHandler);
@@ -271,13 +276,17 @@ export class DungeonScene extends Phaser.Scene {
     else this.sfx.play("victory");
     this.physics.world.pause();
 
+    const snapshot = buildHudSnapshot(this.state, null);
     const result = {
       victory: payload.victory,
       elapsedSec: this.state.elapsedSec,
       kills: this.state.kills,
       score: this.state.score,
+      coins: this.state.coins,
       finalScore: this.state.finalScore,
       wave: this.state.wave,
+      mercs: resultMercsFromSnapshot(snapshot),
+      synergies: resultSynergiesFromSnapshot(snapshot),
     } satisfies HudResult;
     emitPauseState(window, false);
     emitResultState(window, result);
@@ -496,6 +505,7 @@ export class DungeonScene extends Phaser.Scene {
           blockedHireIds: this.state.blockedHireIds,
           mercFull: this.state.mercFull,
           score: this.state.score,
+          coins: this.state.coins,
         },
       }),
     );

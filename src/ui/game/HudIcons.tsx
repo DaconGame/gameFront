@@ -7,6 +7,7 @@ export type IconName =
   | "clock"
   | "wave"
   | "skull"
+  | "coin"
   | "pause";
 
 const GRIDS: Record<IconName, string[]> = {
@@ -25,6 +26,15 @@ const GRIDS: Record<IconName, string[]> = {
     "0101010",
   ],
   pause: ["110011", "110011", "110011", "110011", "110011", "110011"],
+  coin: [
+    "0011100",
+    "0111110",
+    "1101011",
+    "1101011",
+    "1101011",
+    "0111110",
+    "0011100",
+  ],
 };
 
 type Props = {
